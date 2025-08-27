@@ -5,6 +5,17 @@ import { Expense } from "../interfaces/ExpenseCreate";
 
 const API_BASE_URL = "http://localhost:8000";
 
+export const getAllGroups = async (controller: AbortController) => {
+  const res = await axios.get<{ groups: { data: Group[] } }>(
+    `${API_BASE_URL}/groups`,
+    {
+      signal: controller.signal,
+    }
+  );
+
+  return res.data.groups.data;
+};
+
 export const getGroup = async (
   groupId: string,
   controller: AbortController

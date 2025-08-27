@@ -1,0 +1,29 @@
+@font-face {
+  font-family: "Gloria Hallelujah";
+  src: url("./Gloria_Hallelujah/GloriaHallelujah-Regular.ttf")
+    format("truetype");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "NYCD";
+  font-style: normal;
+  font-weight: 400;
+  src: url("./Nothing_You_Could_Do/NothingYouCouldDo-Regular.ttf")
+    format("truetype");
+}
+
+@font-face {
+  font-family: "Rock Salt";
+  font-style: normal;
+  font-weight: 400;
+  src: url("./Rock_Salt/RockSalt-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Itim";
+  font-style: normal;
+  font-weight: 400;
+  src: url("./Itim/Itim-Regular.ttf") format("truetype");
+}

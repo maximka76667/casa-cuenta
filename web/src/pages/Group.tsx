@@ -70,6 +70,7 @@ const Group = () => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
       return;
     }
@@ -85,6 +86,7 @@ const Group = () => {
         status: "success",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
     } catch (error) {
       console.error("Error adding person:", error);
@@ -94,6 +96,7 @@ const Group = () => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
     } finally {
       setIsAddingPerson(false);
@@ -125,6 +128,7 @@ const Group = () => {
         status: "success",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
 
       // Refresh data
@@ -138,6 +142,7 @@ const Group = () => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
     }
   };
@@ -167,6 +172,7 @@ const Group = () => {
         status: "success",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
 
       // Refresh data to update balances
@@ -179,6 +185,7 @@ const Group = () => {
         status: "error",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
     }
   };
@@ -211,6 +218,7 @@ const Group = () => {
         status: "error",
         duration: 5000,
         isClosable: true,
+        position: "top",
       });
     } finally {
       setIsLoading(false);

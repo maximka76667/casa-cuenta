@@ -69,6 +69,11 @@ export const getExpenses = async (
   return res.data;
 };
 
+export const deleteExpense = async (expenseId: string) => {
+  const res = await axios.delete(`${API_BASE_URL}/expenses/${expenseId}`);
+  return res.data;
+};
+
 export const getDebtors = async (
   groupId: string,
   controller: AbortController

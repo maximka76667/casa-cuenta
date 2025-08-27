@@ -8,6 +8,7 @@ import {
   getGroup,
   addPerson,
   getGroupBalances,
+  deleteExpense,
 } from "../api/api";
 import { Person } from "../interfaces/Person";
 import AddExpensePopup from "../components/AddExpensePopup";
@@ -34,7 +35,9 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
+  IconButton,
 } from "@chakra-ui/react";
+import { DeleteIcon } from "@chakra-ui/icons";
 
 const Group = () => {
   const { groupId } = useParams();
@@ -152,6 +155,32 @@ const Group = () => {
   const handlePersonClick = (person: Person) => {
     setIsPersonInfoOpen(true);
     setActivePerson(person);
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    try {
+      await deleteExpense(expenseId);
+      
+      toast({
+        title: "Success",
+        description: "Expense deleted successfully!",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Refresh data to update balances
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete expense. Please try again.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const fetchData = async () => {
@@ -315,15 +344,25 @@ const Group = () => {
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
               {expenses.map((expense) => (
                 <Card key={expense.id} p={4}>
-                  <VStack align="start" spacing={2}>
-                    <Text fontWeight="bold">{expense.name}</Text>
-                    <Text fontSize="lg" color="green.600">
-                      ${expense.amount.toFixed(2)}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Paid by: {persons.find(p => p.id === expense.payer_id)?.name || "Unknown"}
-                    </Text>
-                  </VStack>
+                  <HStack justify="space-between" align="start">
+                    <VStack align="start" spacing={2} flex={1}>
+                      <Text fontWeight="bold">{expense.name}</Text>
+                      <Text fontSize="lg" color="green.600">
+                        ${expense.amount.toFixed(2)}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">
+                        Paid by: {persons.find(p => p.id === expense.payer_id)?.name || "Unknown"}
+                      </Text>
+                    </VStack>
+                    <IconButton
+                      aria-label="Delete expense"
+                      icon={<DeleteIcon />}
+                      size="sm"
+                      colorScheme="red"
+                      variant="ghost"
+                      onClick={() => handleDeleteExpense(expense.id)}
+                    />
+                  </HStack>
                 </Card>
               ))}
             </SimpleGrid>

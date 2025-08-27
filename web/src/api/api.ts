@@ -5,14 +5,13 @@ import { Expense } from "../interfaces/ExpenseCreate";
 
 const API_BASE_URL = "http://localhost:8000";
 
-export const getUserGroups = async (
-  userId: string,
+export const getGroup = async (
+  groupId: string,
   controller: AbortController
 ) => {
-  const res = await axios.get<{ groups: Group[] }>(
-    `${API_BASE_URL}/users/${userId}/groups`,
+  const res = await axios.get<Group>(
+    `${API_BASE_URL}/groups/${groupId}`,
     {
-      withCredentials: true,
       signal: controller.signal,
     }
   );
@@ -24,13 +23,21 @@ export const getGroupPersons = async (
   groupId: string,
   controller: AbortController
 ) => {
-  const res = await axios.get<{ persons: Person[] }>(
+  const res = await axios.get<Person[]>(
     `${API_BASE_URL}/groups/${groupId}/persons`,
     {
-      withCredentials: true,
       signal: controller.signal,
     }
   );
+
+  return res.data;
+};
+
+export const addPerson = async (name: string, groupId: string) => {
+  const res = await axios.post(`${API_BASE_URL}/persons`, {
+    name: name.trim(),
+    group_id: groupId,
+  });
 
   return res.data;
 };
@@ -45,9 +52,6 @@ export const submitExpense = async (data: Expense) => {
       group_id: data.groupId,
       amount: data.amount,
       payer_id: data.payerId,
-    },
-    {
-      withCredentials: true,
     }
   );
 
@@ -58,8 +62,7 @@ export const getExpenses = async (
   groupId: string,
   controller: AbortController
 ) => {
-  const res = await axios.get(`${API_BASE_URL}/expenses/${groupId}`, {
-    withCredentials: true,
+  const res = await axios.get<Expense[]>(`${API_BASE_URL}/expenses/${groupId}`, {
     signal: controller.signal,
   });
 
@@ -71,7 +74,17 @@ export const getDebtors = async (
   controller: AbortController
 ) => {
   const res = await axios.get(`${API_BASE_URL}/debtors/${groupId}`, {
-    withCredentials: true,
+    signal: controller.signal,
+  });
+
+  return res.data;
+};
+
+export const getGroupBalances = async (
+  groupId: string,
+  controller: AbortController
+) => {
+  const res = await axios.get(`${API_BASE_URL}/groups/${groupId}/balances`, {
     signal: controller.signal,
   });
 

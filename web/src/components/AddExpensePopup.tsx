@@ -58,14 +58,17 @@ export default function AddExpensePopup({
     e.preventDefault();
     if (!amount || !payer || debtors.length === 0 || !name) return;
 
-    await onSubmit({
-      name,
-      amount: parseFloat(amount),
-      payerId: payer,
-      debtors,
-    });
-
-    onClose();
+    try {
+      await onSubmit({
+        name,
+        amount: parseFloat(amount),
+        payerId: payer,
+        debtors,
+      });
+      // onClose() is now called from the parent component after successful submission
+    } catch (error) {
+      console.error("Error submitting expense:", error);
+    }
   };
 
   const toggleParticipant = (id: string) => {

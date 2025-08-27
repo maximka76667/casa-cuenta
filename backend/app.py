@@ -51,7 +51,11 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 #         raise HTTPException(status_code=401, detail="Invalid token")
 
 origins = [
-    "http://localhost:5173", 
+    "http://localhost:5173",
+    "http://localhost:12000",
+    "http://localhost:12006",
+    "http://localhost:12007",
+    "https://work-1-azccrmdytbbrmuij.prod-runtime.all-hands.dev",
 ]
 
 # CORS setup

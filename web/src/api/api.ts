@@ -6,9 +6,9 @@ import { Expense } from "../interfaces/Expense";
 
 const API_BASE_URL = "http://localhost:8000";
 
-export const getAllGroups = async (controller: AbortController) => {
+export const getAllGroups = async (controller?: AbortController) => {
   const res = await axios.get<{ groups: Group[] }>(`${API_BASE_URL}/groups`, {
-    signal: controller.signal,
+    signal: controller?.signal,
   });
 
   return res.data.groups;
@@ -16,10 +16,10 @@ export const getAllGroups = async (controller: AbortController) => {
 
 export const getGroup = async (
   groupId: string,
-  controller: AbortController
+  controller?: AbortController
 ) => {
   const res = await axios.get<Group>(`${API_BASE_URL}/groups/${groupId}`, {
-    signal: controller.signal,
+    signal: controller?.signal,
   });
 
   return res.data;
@@ -27,12 +27,12 @@ export const getGroup = async (
 
 export const getGroupPersons = async (
   groupId: string,
-  controller: AbortController
+  controller?: AbortController
 ) => {
   const res = await axios.get<{ persons: Person[] }>(
     `${API_BASE_URL}/groups/${groupId}/persons`,
     {
-      signal: controller.signal,
+      signal: controller?.signal,
     }
   );
 
@@ -62,12 +62,12 @@ export const submitExpense = async (data: ExpenseCreate) => {
 
 export const getExpenses = async (
   groupId: string,
-  controller: AbortController
+  controller?: AbortController
 ) => {
   const res = await axios.get<{ expenses: Expense[] }>(
     `${API_BASE_URL}/expenses/${groupId}`,
     {
-      signal: controller.signal,
+      signal: controller?.signal,
     }
   );
 
@@ -81,10 +81,10 @@ export const deleteExpense = async (expenseId: string) => {
 
 export const getDebtors = async (
   groupId: string,
-  controller: AbortController
+  controller?: AbortController
 ) => {
   const res = await axios.get(`${API_BASE_URL}/debtors/${groupId}`, {
-    signal: controller.signal,
+    signal: controller?.signal,
   });
 
   return res.data.debtors;
@@ -92,10 +92,10 @@ export const getDebtors = async (
 
 export const getGroupBalances = async (
   groupId: string,
-  controller: AbortController
+  controller?: AbortController
 ) => {
   const res = await axios.get(`${API_BASE_URL}/groups/${groupId}/balances`, {
-    signal: controller.signal,
+    signal: controller?.signal,
   });
 
   return res.data;

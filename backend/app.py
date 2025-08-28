@@ -53,6 +53,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 origins = [
     "http://localhost:5173",
     "http://localhost:12000",
+    "http://localhost:12001",
     "http://localhost:12006",
     "http://localhost:12007",
     "https://work-1-azccrmdytbbrmuij.prod-runtime.all-hands.dev",

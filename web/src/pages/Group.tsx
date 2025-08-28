@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useUserStore } from "../store/userStore";
 import { useShallow } from "zustand/shallow";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   getDebtors,
   getExpenses,
@@ -143,11 +143,11 @@ const Group = () => {
                 onClick={() => handlePersonClick(person)}
               >
                 <PersonCard
-                  groupPersons={persons}
                   person={person}
-                  expenses={debtorsExpenses.filter(
-                    (expense) => expense.person_id == person.id
-                  )}
+                  expenses={useMemo(() => 
+                    debtorsExpenses.filter(
+                      (expense) => expense.person_id == person.id
+                    ), [debtorsExpenses, person.id])}
                   payedExpenses={expenses}
                   handleAddExpense={handleAddExpense}
                 />
@@ -169,11 +169,11 @@ const Group = () => {
           isOpen={isPersonInfoOpen}
           handleClosePopup={handleClosePersonInfoPopup}
           activePerson={activePerson!}
-          expenses={debtorsExpenses.filter(
-            (expense) => expense.person_id == activePerson!.id
-          )}
+          expenses={useMemo(() => 
+            debtorsExpenses.filter(
+              (expense) => expense.person_id == activePerson!.id
+            ), [debtorsExpenses, activePerson])}
           payedExpenses={expenses}
-          groupPersons={persons}
         />
       )}
     </div>

@@ -4,3 +4,6 @@ python-dotenv
 supabase
 python-jose[cryptography]
 httpx
+pytest
+pytest-asyncio
+pytest-cov

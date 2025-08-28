@@ -1,4 +1,4 @@
-import React, { MouseEventHandler, useState } from "react";
+import React, { MouseEventHandler, useState, useMemo } from "react";
 import { Person } from "../interfaces/Person";
 import { DebtorsExpense } from "../interfaces/DebtorsExpense";
 import { Expense } from "../interfaces/Expense";
@@ -12,28 +12,29 @@ import {
 } from "@chakra-ui/react";
 
 interface PersonCardProps {
-  groupPersons: Person[];
   person: Person;
   expenses: DebtorsExpense[];
   payedExpenses: Expense[];
-  handleAddExpense: (data) => void;
+  handleAddExpense: (data: string) => void;
 }
 
-const PersonCard = ({
+const PersonCard = React.memo(({
   person,
   expenses,
   payedExpenses,
-  groupPersons,
   handleAddExpense,
 }: PersonCardProps) => {
-  const defaultToPay = expenses.reduce(
-    (sum, expense) => (sum += expense.amount),
-    0
+  const defaultToPay = useMemo(() => 
+    expenses.reduce((sum, expense) => (sum += expense.amount), 0),
+    [expenses]
   );
 
-  const defaultPayed = payedExpenses
-    .filter((e) => e.payer_id == person.id)
-    .reduce((sum, expense) => (sum += expense.amount), 0);
+  const defaultPayed = useMemo(() => 
+    payedExpenses
+      .filter((e) => e.payer_id == person.id)
+      .reduce((sum, expense) => (sum += expense.amount), 0),
+    [payedExpenses, person.id]
+  );
 
   const [total, setTotal] = useState(defaultToPay - defaultPayed);
 
@@ -66,6 +67,6 @@ const PersonCard = ({
       </CardFooter>
     </Card>
   );
-};
+});
 
 export default PersonCard;

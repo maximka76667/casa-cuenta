@@ -198,8 +198,6 @@ const Group = () => {
     fetchData();
   }, [groupId]);
 
-  console.log(persons);
-
   if (isLoading) {
     return (
       <Container maxW="6xl" py={8}>

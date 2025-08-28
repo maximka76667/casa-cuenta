@@ -56,21 +56,12 @@ export default function AddExpensePopup({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted with data:", { name, amount, payer, debtors });
-    
+
     if (!amount || !payer || debtors.length === 0 || !name) {
-      console.log("Validation failed:", { name, amount, payer, debtors: debtors.length });
       return;
     }
 
     try {
-      console.log("Calling onSubmit with:", {
-        name,
-        amount: parseFloat(amount),
-        payerId: payer,
-        debtors,
-      });
-      
       await onSubmit({
         name,
         amount: parseFloat(amount),
@@ -102,7 +93,9 @@ export default function AddExpensePopup({
               <ModalBody>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium my-2">Name</label>
+                    <label className="block text-sm font-medium my-2">
+                      Name
+                    </label>
                     <Input
                       type="text"
                       value={name}

@@ -20,12 +20,9 @@ export const getGroup = async (
   groupId: string,
   controller: AbortController
 ) => {
-  const res = await axios.get<Group>(
-    `${API_BASE_URL}/groups/${groupId}`,
-    {
-      signal: controller.signal,
-    }
-  );
+  const res = await axios.get<Group>(`${API_BASE_URL}/groups/${groupId}`, {
+    signal: controller.signal,
+  });
 
   return res.data;
 };
@@ -41,7 +38,7 @@ export const getGroupPersons = async (
     }
   );
 
-  return res.data;
+  return res.data.persons;
 };
 
 export const addPerson = async (name: string, groupId: string) => {
@@ -54,17 +51,13 @@ export const addPerson = async (name: string, groupId: string) => {
 };
 
 export const submitExpense = async (data: Expense) => {
-  console.log(data);
-  const res = await axios.post(
-    `${API_BASE_URL}/expenses`,
-    {
-      name: data.name,
-      debtors: data.debtors,
-      group_id: data.groupId,
-      amount: data.amount,
-      payer_id: data.payerId,
-    }
-  );
+  const res = await axios.post(`${API_BASE_URL}/expenses`, {
+    name: data.name,
+    debtors: data.debtors,
+    group_id: data.groupId,
+    amount: data.amount,
+    payer_id: data.payerId,
+  });
 
   return res.data;
 };
@@ -73,11 +66,14 @@ export const getExpenses = async (
   groupId: string,
   controller: AbortController
 ) => {
-  const res = await axios.get<Expense[]>(`${API_BASE_URL}/expenses/${groupId}`, {
-    signal: controller.signal,
-  });
+  const res = await axios.get<Expense[]>(
+    `${API_BASE_URL}/expenses/${groupId}`,
+    {
+      signal: controller.signal,
+    }
+  );
 
-  return res.data;
+  return res.data.expenses.data;
 };
 
 export const deleteExpense = async (expenseId: string) => {
@@ -93,7 +89,7 @@ export const getDebtors = async (
     signal: controller.signal,
   });
 
-  return res.data;
+  return res.data.debtors;
 };
 
 export const getGroupBalances = async (

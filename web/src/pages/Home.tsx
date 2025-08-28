@@ -1,26 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Button, 
-  Input, 
-  VStack, 
-  Heading, 
-  Text, 
-  Container, 
-  Box, 
+import {
+  Button,
+  Input,
+  VStack,
+  Heading,
+  Text,
+  Container,
+  Box,
   useToast,
   SimpleGrid,
   Card,
   CardBody,
-  CardHeader,
   Spinner,
   HStack,
   Badge,
-  Divider
 } from "@chakra-ui/react";
 import axios from "axios";
 import { getAllGroups } from "../api/api";
 import { Group } from "../interfaces/Group";
+import { useNotifications } from "../hooks/useNotifications";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -31,10 +30,11 @@ const Home = () => {
   const [isLoadingGroups, setIsLoadingGroups] = useState(true);
   const navigate = useNavigate();
   const toast = useToast();
+  const { showError, showSuccess } = useNotifications();
 
   useEffect(() => {
     const controller = new AbortController();
-    
+
     const fetchGroups = async () => {
       try {
         const groupsData = await getAllGroups(controller);
@@ -42,13 +42,9 @@ const Home = () => {
       } catch (error) {
         if (!controller.signal.aborted) {
           console.error("Error fetching groups:", error);
-          toast({
+          showError({
             title: "Error",
             description: "Failed to load groups",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-            position: "top",
           });
         }
       } finally {
@@ -65,14 +61,11 @@ const Home = () => {
 
   const createGroup = async () => {
     if (!groupName.trim()) {
-      toast({
+      showError({
         title: "Error",
         description: "Please enter a group name",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top",
       });
+
       return;
     }
 
@@ -83,13 +76,9 @@ const Home = () => {
       });
 
       const group = response.data.group[0];
-      toast({
+      showSuccess({
         title: "Success",
         description: `Group "${group.name}" created successfully!`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-        position: "top",
       });
 
       // Refresh the groups list
@@ -108,13 +97,9 @@ const Home = () => {
       navigate(`/groups/${group.id}`);
     } catch (error) {
       console.error("Error creating group:", error);
-      toast({
+      showError({
         title: "Error",
         description: "Failed to create group. Please try again.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top",
       });
     } finally {
       setIsLoading(false);
@@ -127,10 +112,10 @@ const Home = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -179,11 +164,13 @@ const Home = () => {
                   {groups.length} groups
                 </Badge>
               </HStack>
-              
+
               {isLoadingGroups ? (
                 <Box textAlign="center" py={4}>
                   <Spinner size="md" />
-                  <Text mt={2} color="gray.500">Loading groups...</Text>
+                  <Text mt={2} color="gray.500">
+                    Loading groups...
+                  </Text>
                 </Box>
               ) : groups.length === 0 ? (
                 <Box textAlign="center" py={4}>
@@ -195,10 +182,15 @@ const Home = () => {
               ) : (
                 <VStack spacing={3} maxH="300px" overflowY="auto">
                   {groups.map((group) => (
-                    <Card key={group.id} w="100%" size="sm" cursor="pointer" 
-                          _hover={{ shadow: "md", transform: "translateY(-1px)" }}
-                          transition="all 0.2s"
-                          onClick={() => joinGroup(group.id)}>
+                    <Card
+                      key={group.id}
+                      w="100%"
+                      size="sm"
+                      cursor="pointer"
+                      _hover={{ shadow: "md", transform: "translateY(-1px)" }}
+                      transition="all 0.2s"
+                      onClick={() => joinGroup(group.id)}
+                    >
                       <CardBody>
                         <VStack align="start" spacing={1}>
                           <Text fontWeight="semibold" fontSize="md">
@@ -219,7 +211,8 @@ const Home = () => {
 
         <Box textAlign="center" color="gray.500">
           <Text fontSize="sm">
-            No signup required! Create a group or join an existing one to start splitting expenses.
+            No signup required! Create a group or join an existing one to start
+            splitting expenses.
           </Text>
         </Box>
       </VStack>

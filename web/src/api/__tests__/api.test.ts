@@ -21,7 +21,7 @@ describe("API functions", () => {
       const mockGroups = [{ id: "1", name: "Test Group" }];
 
       vi.mocked(mockedAxios.get).mockResolvedValue({
-        data: { groups: { data: mockGroups } },
+        data: { groups: mockGroups },
       });
 
       const controller = new AbortController();
@@ -121,7 +121,7 @@ describe("API functions", () => {
     it("fetches expenses for group successfully", async () => {
       const mockExpenses = [{ id: "1", name: "Test Expense", amount: 50 }];
       vi.mocked(mockedAxios.get).mockResolvedValue({
-        data: { expenses: { data: mockExpenses } },
+        data: { expenses: mockExpenses },
       });
 
       const controller = new AbortController();

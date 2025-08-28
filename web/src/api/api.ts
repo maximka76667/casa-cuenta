@@ -7,12 +7,9 @@ import { Expense } from "../interfaces/Expense";
 const API_BASE_URL = "http://localhost:8000";
 
 export const getAllGroups = async (controller: AbortController) => {
-  const res = await axios.get<{ groups: { data: Group[] } }>(
-    `${API_BASE_URL}/groups`,
-    {
-      signal: controller.signal,
-    }
-  );
+  const res = await axios.get<{ groups: Group[] }>(`${API_BASE_URL}/groups`, {
+    signal: controller.signal,
+  });
 
   return res.data.groups;
 };
@@ -67,7 +64,7 @@ export const getExpenses = async (
   groupId: string,
   controller: AbortController
 ) => {
-  const res = await axios.get<{ expenses: { data: Expense[] } }>(
+  const res = await axios.get<{ expenses: Expense[] }>(
     `${API_BASE_URL}/expenses/${groupId}`,
     {
       signal: controller.signal,

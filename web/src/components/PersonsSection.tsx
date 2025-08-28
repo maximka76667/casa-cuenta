@@ -7,7 +7,10 @@ import {
   VStack,
   Badge,
   Button,
+  IconButton,
+  HStack,
 } from "@chakra-ui/react";
+import { DeleteIcon } from "@chakra-ui/icons";
 import { Person } from "../interfaces/Person";
 import { Balances } from "../interfaces/Balances";
 
@@ -16,6 +19,7 @@ interface PersonsListProps {
   balances: Balances;
   onPersonClick: (person: Person) => void;
   onAddExpense: (personId: string) => void;
+  onDeletePerson: (personId: string) => void;
 }
 
 const PersonsList = ({
@@ -23,6 +27,7 @@ const PersonsList = ({
   balances,
   onPersonClick,
   onAddExpense,
+  onDeletePerson,
 }: PersonsListProps) => {
   return (
     <Box>
@@ -42,37 +47,50 @@ const PersonsList = ({
               cursor="pointer"
               onClick={() => onPersonClick(person)}
             >
-              <VStack spacing={2}>
-                <Text fontWeight="bold">{person.name}</Text>
-                {balances && balances[person.id] && (
-                  <VStack spacing={1}>
-                    <Text fontSize="sm" color="gray.600">
-                      Paid: ${balances[person.id].paid.toFixed(2)}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Owes: ${balances[person.id].owes.toFixed(2)}
-                    </Text>
-                    <Badge
-                      colorScheme={
-                        balances[person.id].balance >= 0 ? "green" : "red"
-                      }
-                    >
-                      {balances[person.id].balance >= 0 ? "+" : ""}$
-                      {balances[person.id].balance.toFixed(2)}
-                    </Badge>
-                  </VStack>
-                )}
-                <Button
+              <HStack justify="space-between" align="start">
+                <VStack spacing={2} flex={1}>
+                  <Text fontWeight="bold">{person.name}</Text>
+                  {balances && balances[person.id] && (
+                    <VStack spacing={1}>
+                      <Text fontSize="sm" color="gray.600">
+                        Paid: ${balances[person.id].paid.toFixed(2)}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">
+                        Owes: ${balances[person.id].owes.toFixed(2)}
+                      </Text>
+                      <Badge
+                        colorScheme={
+                          balances[person.id].balance >= 0 ? "green" : "red"
+                        }
+                      >
+                        {balances[person.id].balance >= 0 ? "+" : ""}$
+                        {balances[person.id].balance.toFixed(2)}
+                      </Badge>
+                    </VStack>
+                  )}
+                  <Button
+                    size="sm"
+                    colorScheme="blue"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddExpense(person.id);
+                    }}
+                  >
+                    Add Expense
+                  </Button>
+                </VStack>
+                <IconButton
+                  aria-label="Delete person"
+                  icon={<DeleteIcon />}
                   size="sm"
-                  colorScheme="blue"
+                  colorScheme="red"
+                  variant="ghost"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onAddExpense(person.id);
+                    onDeletePerson(person.id);
                   }}
-                >
-                  Add Expense
-                </Button>
-              </VStack>
+                />
+              </HStack>
             </Card>
           ))}
         </SimpleGrid>

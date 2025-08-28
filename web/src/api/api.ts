@@ -79,6 +79,11 @@ export const deleteExpense = async (expenseId: string) => {
   return res.data;
 };
 
+export const deletePerson = async (personId: string) => {
+  const res = await axios.delete(`${API_BASE_URL}/persons/${personId}`);
+  return res.data;
+};
+
 export const getDebtors = async (
   groupId: string,
   controller?: AbortController

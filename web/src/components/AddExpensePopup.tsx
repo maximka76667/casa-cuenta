@@ -56,16 +56,31 @@ export default function AddExpensePopup({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !payer || debtors.length === 0 || !name) return;
+    console.log("Form submitted with data:", { name, amount, payer, debtors });
+    
+    if (!amount || !payer || debtors.length === 0 || !name) {
+      console.log("Validation failed:", { name, amount, payer, debtors: debtors.length });
+      return;
+    }
 
-    await onSubmit({
-      name,
-      amount: parseFloat(amount),
-      payerId: payer,
-      debtors,
-    });
-
-    onClose();
+    try {
+      console.log("Calling onSubmit with:", {
+        name,
+        amount: parseFloat(amount),
+        payerId: payer,
+        debtors,
+      });
+      
+      await onSubmit({
+        name,
+        amount: parseFloat(amount),
+        payerId: payer,
+        debtors,
+      });
+      // onClose() is now called from the parent component after successful submission
+    } catch (error) {
+      console.error("Error submitting expense:", error);
+    }
   };
 
   const toggleParticipant = (id: string) => {
@@ -79,90 +94,91 @@ export default function AddExpensePopup({
       <Modal isOpen={true} onClose={onClose}>
         <ModalOverlay>
           <ModalContent>
-            <ModalHeader fontSize="lg" fontWeight="bold">
-              Add Expense
-            </ModalHeader>
+            <form onSubmit={handleSubmit}>
+              <ModalHeader fontSize="lg" fontWeight="bold">
+                Add Expense
+              </ModalHeader>
 
-            <ModalBody>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium my-2">Name</label>
-                  <Input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="mt-1 block w-full border rounded-md p-2"
-                    required
-                  />
-                </div>
+              <ModalBody>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium my-2">Name</label>
+                    <Input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="mt-1 block w-full border rounded-md p-2"
+                      required
+                    />
+                  </div>
 
-                <div className="mt-1 ">
-                  <label className="block text-sm font-medium my-2">
-                    Amount
-                  </label>
-                  <NumberInput
-                    value={amount}
-                    onChange={(valueString) => setAmount(valueString)}
-                    // className="mt-1 block w-full border rounded-md p-2"
-                  >
-                    <NumberInputField />
-                    <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
-                    </NumberInputStepper>
-                  </NumberInput>
-                </div>
+                  <div className="mt-1 ">
+                    <label className="block text-sm font-medium my-2">
+                      Amount
+                    </label>
+                    <NumberInput
+                      value={amount}
+                      onChange={(valueString) => setAmount(valueString)}
+                      // className="mt-1 block w-full border rounded-md p-2"
+                    >
+                      <NumberInputField />
+                      <NumberInputStepper>
+                        <NumberIncrementStepper />
+                        <NumberDecrementStepper />
+                      </NumberInputStepper>
+                    </NumberInput>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium my-2">
-                    Who pays?
-                  </label>
-                  <Select
-                    value={payer}
-                    onChange={(e) => setPayer(e.target.value)}
-                    className="mt-1 block w-full border rounded-md p-2"
-                    required
-                  >
-                    <option value="">Select</option>
-                    {persons.map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {person.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium my-2">
+                      Who pays?
+                    </label>
+                    <Select
+                      value={payer}
+                      onChange={(e) => setPayer(e.target.value)}
+                      className="mt-1 block w-full border rounded-md p-2"
+                      required
+                    >
+                      <option value="">Select</option>
+                      {persons.map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium">
-                    Who shares?
-                  </label>
-                  <div className="mt-2 space-y-1">
-                    {persons.map((person) => (
-                      <label
-                        key={person.id}
-                        className="flex items-center gap-2"
-                      >
-                        <Checkbox
-                          type="checkbox"
-                          checked={debtors.includes(person.id)}
-                          onChange={() => toggleParticipant(person.id)}
-                        />
-                        {person.name}
-                      </label>
-                    ))}
+                  <div>
+                    <label className="block text-sm font-medium">
+                      Who shares?
+                    </label>
+                    <div className="mt-2 space-y-1">
+                      {persons.map((person) => (
+                        <label
+                          key={person.id}
+                          className="flex items-center gap-2"
+                        >
+                          <Checkbox
+                            isChecked={debtors.includes(person.id)}
+                            onChange={() => toggleParticipant(person.id)}
+                          />
+                          {person.name}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </form>
-            </ModalBody>
+              </ModalBody>
 
-            <ModalFooter>
-              <Button ref={cancelRef} onClick={onClose}>
-                Cancel
-              </Button>
-              <Button colorScheme="green" onClick={handleSubmit} ml={3}>
-                Submit
-              </Button>
-            </ModalFooter>
+              <ModalFooter>
+                <Button ref={cancelRef} onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button colorScheme="green" type="submit" ml={3}>
+                  Submit
+                </Button>
+              </ModalFooter>
+            </form>
           </ModalContent>
         </ModalOverlay>
       </Modal>

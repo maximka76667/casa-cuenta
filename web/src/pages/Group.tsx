@@ -76,13 +76,14 @@ const Group = () => {
 
     setIsAddingPerson(true);
     try {
-      const newPerson = await addPerson(newPersonName, groupId);
-      setPersons([...persons, newPerson]);
+      const { person: newPerson } = await addPerson(newPersonName, groupId);
+      setPersons([...persons, newPerson[0]]);
       setNewPersonName("");
       showSuccess({
         title: "Success",
         description: `${newPerson.name} added to the group!`,
       });
+      fetchData();
     } catch (error) {
       console.error("Error adding person:", error);
       showError({
@@ -165,15 +166,20 @@ const Group = () => {
     }
   };
 
-  const fetchData = useCallback(async () => {
-    if (!groupId) return;
+  const fetchData = useCallback(
+    async (controller?: AbortController) => {
+      if (!groupId) return;
 
-    setIsLoading(true);
-    const controller = new AbortController();
+      setIsLoading(true);
 
-    try {
-      const [groupData, personsData, expensesData, debtorsData, balancesData] =
-        await Promise.all([
+      try {
+        const [
+          groupData,
+          personsData,
+          expensesData,
+          debtorsData,
+          balancesData,
+        ] = await Promise.all([
           getGroup(groupId, controller),
           getGroupPersons(groupId, controller),
           getExpenses(groupId, controller),
@@ -181,24 +187,37 @@ const Group = () => {
           getGroupBalances(groupId, controller),
         ]);
 
-      setGroup(groupData);
-      setPersons(personsData);
-      setExpenses(expensesData);
-      setDebtorsExpenses(debtorsData);
-      setBalances(balancesData.balances);
-    } catch (err) {
-      console.error("Failed to fetch data:", err);
-      showError({
-        title: "Error",
-        description: "Failed to load group data. Please check the group ID.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [groupId, showError]);
+        setGroup(groupData);
+        setPersons(personsData);
+        setExpenses(expensesData);
+        setDebtorsExpenses(debtorsData);
+        setBalances(balancesData.balances);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          if (err.name === "CanceledError") return; // ignore cancellation
+          console.error("Failed to fetch data:", err);
+          showError({
+            title: "Error",
+            description:
+              "Failed to load group data. Please check the group ID.",
+          });
+        } else {
+          console.error("Unexpected error", err);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [groupId, showError]
+  );
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller);
+
+    return () => {
+      controller.abort();
+    };
   }, [groupId, fetchData]);
 
   if (isLoading) {

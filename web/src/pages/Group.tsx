@@ -9,6 +9,7 @@ import {
   addPerson,
   getGroupBalances,
   deleteExpense,
+  deletePerson,
 } from "../api/api";
 import { Person } from "../interfaces/Person";
 import AddExpensePopup from "../components/AddExpensePopup";
@@ -136,6 +137,26 @@ const Group = () => {
     }
   };
 
+  const handleDeletePerson = async (personId: string) => {
+    try {
+      await deletePerson(personId);
+
+      showSuccess({
+        title: "Success",
+        description: "Person deleted successfully!",
+      });
+
+      // Refresh data to update persons list and balances
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting person:", error);
+      showError({
+        title: "Error",
+        description: "Failed to delete person. Please try again.",
+      });
+    }
+  };
+
   const fetchData = useCallback(
     async (controller?: AbortController) => {
       if (!groupId) return;
@@ -221,6 +242,7 @@ const Group = () => {
             balances={balances}
             onPersonClick={handlePersonClick}
             onAddExpense={handleAddExpense}
+            onDeletePerson={handleDeletePerson}
           />
         ) : (
           <p>Loading balances...</p>

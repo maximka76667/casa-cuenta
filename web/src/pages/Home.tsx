@@ -57,7 +57,7 @@ const Home = () => {
     return () => {
       controller.abort();
     };
-  }, [toast]);
+  }, [toast, showError]);
 
   const createGroup = async () => {
     if (!groupName.trim()) {
@@ -140,7 +140,7 @@ const Home = () => {
                 placeholder="Enter group name (e.g., 'Weekend Trip', 'Roommates')"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && createGroup()}
+                onKeyDown={(e) => e.key === "Enter" && createGroup()}
               />
               <Button
                 colorScheme="blue"

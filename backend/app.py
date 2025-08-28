@@ -98,14 +98,14 @@ def signin(auth: AuthCredentials):
 def get_expenses():
     response = supabase.table("expenses").select("*").execute()
 
-    return {"expenses": response}
+    return {"expenses": response.data}
 
 
 @app.get("/expenses/{group_id}")
 def get_expenses_for_group(group_id: str):
     response = supabase.table("expenses").select("*").eq("group_id", group_id).execute()
 
-    return {"expenses": response}
+    return {"expenses": response.data}
 
 
 @app.post("/expenses")
@@ -148,7 +148,10 @@ def delete_expense(expense_id: str):
 @app.put("/expenses/{expense_id}")
 def update_expense(expense_id: str, expense: ExpenseUpdate):
     response = (
-        supabase.table("expenses").update(expense.dict()).eq("id", expense_id).execute()
+        supabase.table("expenses")
+        .update(expense.model_dump())
+        .eq("id", expense_id)
+        .execute()
     )
     return {"message": "Expense updated", "expense": response.data}
 
@@ -158,7 +161,7 @@ def update_expense(expense_id: str, expense: ExpenseUpdate):
 def get_debtors():
     response = supabase.table("expenses_debtors").select("*").execute()
 
-    return {"debtors": response}
+    return {"debtors": response.data}
 
 
 @app.get("/debtors/{group_id}")
@@ -175,7 +178,7 @@ def get_debtors_for_group(group_id: str):
 
 @app.post("/debtors")
 def add_debtor(debtor: ExpenseDebtorIn):
-    response = supabase.table("expenses_debtors").insert(debtor.dict()).execute()
+    response = supabase.table("expenses_debtors").insert(debtor.model_dump()).execute()
     return {"message": "Debtor added", "debtor": response.data}
 
 
@@ -189,7 +192,7 @@ def delete_debtor(debtor_id: str):
 def update_debtor(debtor_id: str, debtor: ExpenseDebtorUpdate):
     response = (
         supabase.table("expenses_debtors")
-        .update(debtor.dict())
+        .update(debtor.model_dump())
         .eq("id", debtor_id)
         .execute()
     )
@@ -201,13 +204,13 @@ def update_debtor(debtor_id: str, debtor: ExpenseDebtorUpdate):
 def get_persons():
     response = supabase.table("persons").select("*").execute()
 
-    return {"persons": response}
+    return {"persons": response.data}
 
 
 @app.post("/persons")
 def add_person(person: PersonIn):
     try:
-        response = supabase.table("persons").insert(person.dict()).execute()
+        response = supabase.table("persons").insert(person.model_dump()).execute()
     except:
         raise HTTPException(500, "Error on adding person")
     return {"message": "Person added", "person": response.data}
@@ -225,7 +228,10 @@ def delete_person(person_id: str):
 @app.put("/persons/{person_id}")
 def update_person(person_id: str, person: PersonUpdate):
     response = (
-        supabase.table("persons").update(person.dict()).eq("id", person_id).execute()
+        supabase.table("persons")
+        .update(person.model_dump())
+        .eq("id", person_id)
+        .execute()
     )
     return {"message": "Person updated", "person": response.data}
 
@@ -235,12 +241,12 @@ def update_person(person_id: str, person: PersonUpdate):
 def get_members():
     response = supabase.table("group_users").select("*").execute()
 
-    return {"members": response}
+    return {"members": response.data}
 
 
 @app.post("/members")
 def add_member(member: GroupUserIn):
-    response = supabase.table("group_users").insert(member.dict()).execute()
+    response = supabase.table("group_users").insert(member.model_dump()).execute()
     return {"message": "Member added", "member": response.data}
 
 
@@ -254,7 +260,7 @@ def delete_member(member_id: str):
 def update_member(member_id: str, member: GroupUserUpdate):
     response = (
         supabase.table("group_users")
-        .update(member.dict())
+        .update(member.model_dump())
         .eq("id", member_id)
         .execute()
     )
@@ -265,7 +271,7 @@ def update_member(member_id: str, member: GroupUserUpdate):
 @app.get("/groups")
 def get_groups():
     response = supabase.table("groups").select("*").execute()
-    return {"groups": response}
+    return {"groups": response.data}
 
 
 @app.get("/groups/{group_id}")
@@ -273,7 +279,7 @@ def get_group(group_id: str):
     response = (
         supabase.table("groups").select("*").eq("id", group_id).single().execute()
     )
-    return {"group": response}
+    return {"group": response.data}
 
 
 @app.get("/groups/{group_id}/persons")
@@ -285,7 +291,7 @@ def get_group_persons(group_id: str):
 
 @app.post("/groups")
 def add_group(group: GroupIn):
-    response = supabase.table("groups").insert(group.dict()).execute()
+    response = supabase.table("groups").insert(group.model_dump()).execute()
     return {"message": "Group added", "group": response.data}
 
 
@@ -298,7 +304,7 @@ def delete_group(group_id: str):
 @app.put("/groups/{group_id}")
 def update_group(group_id: str, group: GroupUpdate):
     response = (
-        supabase.table("groups").update(group.dict()).eq("id", group_id).execute()
+        supabase.table("groups").update(group.model_dump()).eq("id", group_id).execute()
     )
     return {"message": "Group updated", "group": response.data}
 

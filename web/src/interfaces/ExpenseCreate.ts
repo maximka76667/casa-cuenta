@@ -5,3 +5,5 @@ export interface ExpenseCreate {
   payerId: string;
   debtors: string[];
 }
+
+export type ExpenseCreateWithoutGroupId = Omit<ExpenseCreate, "groupId">;

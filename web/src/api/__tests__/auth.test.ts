@@ -1,74 +1,80 @@
-import { vi } from 'vitest'
-import axios from 'axios'
-import { signin, signup } from '../auth'
-import { useUserStore } from '../../store/userStore'
+import { vi } from "vitest";
+import axios from "axios";
+import { signin, signup } from "../auth";
+import { useUserStore } from "../../store/userStore";
 
-vi.mock('axios')
-vi.mock('../../store/userStore')
+vi.mock("axios");
+vi.mock("../../store/userStore");
 
-const mockedAxios = vi.mocked(axios)
-const mockedUserStore = vi.mocked(useUserStore)
+const mockedAxios = vi.mocked(axios);
+const mockedUserStore = vi.mocked(useUserStore);
 
-describe('Auth API functions', () => {
+describe("Auth API functions", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    mockedUserStore.getState.mockReturnValue({
-      setUser: vi.fn(),
-      setAccessToken: vi.fn()
-    })
-  })
+    vi.clearAllMocks();
 
-  describe('signin', () => {
-    it('signs in user successfully and updates store', async () => {
-      const mockUser = { id: '1', email: 'test@example.com' }
+    const mockUser = { id: "1", email: "test@example.com" };
+
+    vi.mocked(mockedUserStore.getState).mockReturnValue({
+      accessToken: "test_token",
+      user: mockUser,
+      setUser: vi.fn(),
+      setAccessToken: vi.fn(),
+      clearUser: vi.fn(),
+    });
+  });
+
+  describe("signin", () => {
+    it("signs in user successfully and updates store", async () => {
+      const mockUser = { id: "1", email: "test@example.com" };
       const mockResponse = {
         data: {
           user: mockUser,
-          accessToken: 'test_token'
-        }
-      }
-      mockedAxios.post.mockResolvedValue(mockResponse)
+          accessToken: "test_token",
+        },
+      };
+      vi.mocked(mockedAxios.post).mockResolvedValue(mockResponse);
 
-      const result = await signin('test@example.com', 'password123')
+      const result = await signin("test@example.com", "password123");
 
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://localhost:8000/signin',
+        "http://localhost:8000/signin",
         {
-          email: 'test@example.com',
-          password: 'password123'
+          email: "test@example.com",
+          password: "password123",
         },
         {
-          withCredentials: true
+          withCredentials: true,
         }
-      )
+      );
 
-      expect(result).toEqual(mockResponse.data)
-    })
-  })
+      expect(result).toEqual(mockResponse.data);
+    });
+  });
 
-  describe('signup', () => {
-    it('signs up user successfully', async () => {
+  describe("signup", () => {
+    it("signs up user successfully", async () => {
       const mockResponse = {
         data: {
-          user: { id: '1', email: 'test@example.com' }
-        }
-      }
-      mockedAxios.post.mockResolvedValue(mockResponse)
+          user: { id: "1", email: "test@example.com" },
+        },
+      };
+      vi.mocked(mockedAxios.post).mockResolvedValue(mockResponse);
 
-      const result = await signup('test@example.com', 'password123')
+      const result = await signup("test@example.com", "password123");
 
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://localhost:8000/signup',
+        "http://localhost:8000/signup",
         {
-          email: 'test@example.com',
-          password: 'password123'
+          email: "test@example.com",
+          password: "password123",
         },
         {
-          withCredentials: true
+          withCredentials: true,
         }
-      )
+      );
 
-      expect(result).toEqual(mockResponse.data)
-    })
-  })
-})
+      expect(result).toEqual(mockResponse.data);
+    });
+  });
+});

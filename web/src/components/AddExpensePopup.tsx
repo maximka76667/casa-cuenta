@@ -1,10 +1,4 @@
 import {
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
   Button,
   Checkbox,
   Input,
@@ -22,22 +16,14 @@ import {
   Select,
 } from "@chakra-ui/react";
 import { useRef, useState } from "react";
-
-type Person = {
-  id: string;
-  name: string;
-};
+import { ExpenseCreateWithoutGroupId } from "../interfaces/ExpenseCreate";
+import { Person } from "../interfaces/Person";
 
 interface AddExpensePopupProps {
   clickedPayer: string;
   persons: Person[];
   onClose: () => void;
-  onSubmit: (data: {
-    name: string;
-    amount: number;
-    payerId: string;
-    debtors: string[];
-  }) => void;
+  onSubmit: (data: ExpenseCreateWithoutGroupId) => void;
 }
 
 export default function AddExpensePopup({
@@ -175,82 +161,6 @@ export default function AddExpensePopup({
           </ModalContent>
         </ModalOverlay>
       </Modal>
-      {/* <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-        <div className="bg-white p-6 rounded-2xl shadow-lg w-96">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium">Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full border rounded-md p-2"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Amount</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="mt-1 block w-full border rounded-md p-2"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Who pays?</label>
-              <select
-                value={payer}
-                onChange={(e) => setPayer(e.target.value)}
-                className="mt-1 block w-full border rounded-md p-2"
-                required
-              >
-                <option value="">Select</option>
-                {persons.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium">Who shares?</label>
-              <div className="mt-2 space-y-1">
-                {persons.map((person) => (
-                  <label key={person.id} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={debtors.includes(person.id)}
-                      onChange={() => toggleParticipant(person.id)}
-                    />
-                    {person.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-md border"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded-md"
-              >
-                Add
-              </button>
-            </div>
-          </form>
-        </div>
-      </div> */}
     </>
   );
 }

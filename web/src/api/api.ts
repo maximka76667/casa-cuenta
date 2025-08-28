@@ -1,7 +1,8 @@
 import axios from "axios";
 import { Group } from "../interfaces/Group";
 import { Person } from "../interfaces/Person";
-import { Expense } from "../interfaces/ExpenseCreate";
+import { ExpenseCreate } from "../interfaces/ExpenseCreate";
+import { Expense } from "../interfaces/Expense";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -13,7 +14,7 @@ export const getAllGroups = async (controller: AbortController) => {
     }
   );
 
-  return res.data.groups.data;
+  return res.data.groups;
 };
 
 export const getGroup = async (
@@ -31,7 +32,7 @@ export const getGroupPersons = async (
   groupId: string,
   controller: AbortController
 ) => {
-  const res = await axios.get<Person[]>(
+  const res = await axios.get<{ persons: Person[] }>(
     `${API_BASE_URL}/groups/${groupId}/persons`,
     {
       signal: controller.signal,
@@ -50,7 +51,7 @@ export const addPerson = async (name: string, groupId: string) => {
   return res.data;
 };
 
-export const submitExpense = async (data: Expense) => {
+export const submitExpense = async (data: ExpenseCreate) => {
   const res = await axios.post(`${API_BASE_URL}/expenses`, {
     name: data.name,
     debtors: data.debtors,
@@ -66,14 +67,14 @@ export const getExpenses = async (
   groupId: string,
   controller: AbortController
 ) => {
-  const res = await axios.get<Expense[]>(
+  const res = await axios.get<{ expenses: { data: Expense[] } }>(
     `${API_BASE_URL}/expenses/${groupId}`,
     {
       signal: controller.signal,
     }
   );
 
-  return res.data.expenses.data;
+  return res.data.expenses;
 };
 
 export const deleteExpense = async (expenseId: string) => {

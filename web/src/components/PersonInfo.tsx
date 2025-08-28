@@ -1,4 +1,3 @@
-import React from "react";
 import { Person } from "../interfaces/Person";
 import { DebtorsExpense } from "../interfaces/DebtorsExpense";
 import { Expense } from "../interfaces/Expense";
@@ -11,7 +10,6 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Stack,
   Text,
 } from "@chakra-ui/react";
 
@@ -84,6 +82,7 @@ const PersonInfo = ({
 
               return (
                 <Card
+                  key={expense.id}
                   className="border-b-cyan-600 p-5 border-2 m-1"
                   bgColor="#eee"
                 >
@@ -91,7 +90,7 @@ const PersonInfo = ({
                     {currentExpense?.name}
                   </Heading>
                   <Text fontSize="xl" fontWeight="bold" className="text-right">
-                    {expense.amount} €
+                    {expense.amount.toFixed(2)} €
                   </Text>
                   <Text fontSize="xs" className="text-right">
                     {activePerson!.id === payerId

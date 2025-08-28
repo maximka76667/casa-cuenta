@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   getDebtors,
   getExpenses,
@@ -12,7 +12,6 @@ import {
 } from "../api/api";
 import { Person } from "../interfaces/Person";
 import AddExpensePopup from "../components/AddExpensePopup";
-import PersonCard from "../components/PersonCard";
 import { DebtorsExpense } from "../interfaces/DebtorsExpense";
 import { Expense } from "../interfaces/Expense";
 import { Group as GroupType } from "../interfaces/Group";
@@ -37,6 +36,8 @@ import {
 } from "@chakra-ui/react";
 import { DeleteIcon } from "@chakra-ui/icons";
 import { useNotifications } from "../hooks/useNotifications";
+import { ExpenseCreateWithoutGroupId } from "../interfaces/ExpenseCreate";
+import { PersonFinancials } from "../interfaces/PersonFinancials";
 
 const Group = () => {
   const { groupId } = useParams();
@@ -45,7 +46,9 @@ const Group = () => {
   const [persons, setPersons] = useState<Person[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [debtorsExpenses, setDebtorsExpenses] = useState<DebtorsExpense[]>([]);
-  const [balances, setBalances] = useState<any>(null);
+  const [balances, setBalances] = useState<{
+    [personId: string]: PersonFinancials;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Add person state
@@ -96,7 +99,7 @@ const Group = () => {
     setClickedPersonId(clickedPersonId);
   };
 
-  const handleSubmitExpense = async (data: any) => {
+  const handleSubmitExpense = async (data: ExpenseCreateWithoutGroupId) => {
     if (!groupId) return;
 
     try {
@@ -162,7 +165,7 @@ const Group = () => {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!groupId) return;
 
     setIsLoading(true);
@@ -192,11 +195,11 @@ const Group = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [groupId, showError]);
 
   useEffect(() => {
     fetchData();
-  }, [groupId]);
+  }, [groupId, fetchData]);
 
   if (isLoading) {
     return (
@@ -246,7 +249,7 @@ const Group = () => {
                 placeholder="Enter person's name"
                 value={newPersonName}
                 onChange={(e) => setNewPersonName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleAddPerson()}
+                onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
               />
               <Button
                 colorScheme="green"
@@ -364,18 +367,24 @@ const Group = () => {
             </Heading>
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
               {Object.entries(balances).map(
-                ([personId, balance]: [string, any]) => (
+                ([personId, personFinancials]: [string, PersonFinancials]) => (
                   <Card key={personId} p={4}>
                     <Stat>
-                      <StatLabel>{balance.name}</StatLabel>
+                      <StatLabel>{personFinancials.name}</StatLabel>
                       <StatNumber
-                        color={balance.balance >= 0 ? "green.500" : "red.500"}
+                        color={
+                          personFinancials.balance >= 0
+                            ? "green.500"
+                            : "red.500"
+                        }
                       >
-                        {balance.balance >= 0 ? "+" : ""}$
-                        {balance.balance.toFixed(2)}
+                        {personFinancials.balance >= 0 ? "+" : ""}$
+                        {personFinancials.balance.toFixed(2)}
                       </StatNumber>
                       <StatHelpText>
-                        {balance.balance >= 0 ? "Should receive" : "Should pay"}
+                        {personFinancials.balance >= 0
+                          ? "Should receive"
+                          : "Should pay"}
                       </StatHelpText>
                     </Stat>
                   </Card>

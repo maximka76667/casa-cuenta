@@ -12,30 +12,22 @@ import {
 } from "../api/api";
 import { Person } from "../interfaces/Person";
 import AddExpensePopup from "../components/AddExpensePopup";
-import PersonCard from "../components/PersonCard";
 import { DebtorsExpense } from "../interfaces/DebtorsExpense";
 import { Expense } from "../interfaces/Expense";
 import { Group as GroupType } from "../interfaces/Group";
 import PersonInfo from "../components/PersonInfo";
+import GroupHeader from "../components/GroupHeader";
+import AddPersonForm from "../components/AddPersonForm";
+import PersonsList from "../components/PersonsList";
+import ExpensesList from "../components/ExpensesList";
+import BalancesSummary from "../components/BalancesSummary";
 import {
-  Card,
-  Heading,
   Text,
   Container,
   VStack,
-  HStack,
   Button,
-  Input,
   Box,
-  Badge,
-  SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
-  IconButton,
 } from "@chakra-ui/react";
-import { DeleteIcon } from "@chakra-ui/icons";
 import { useNotifications } from "../hooks/useNotifications";
 
 const Group = () => {
@@ -227,165 +219,33 @@ const Group = () => {
     <Container maxW="6xl" py={8}>
       <VStack spacing={6} align="stretch">
         {/* Header */}
-        <Box textAlign="center">
-          <Heading size="xl" mb={2}>
-            {group.name}
-          </Heading>
-          <Text color="gray.500" fontSize="sm">
-            Group ID: {groupId}
-          </Text>
-          <Text color="gray.600" fontSize="sm" mt={1}>
-            Share this URL with others to let them join and add expenses
-          </Text>
-        </Box>
+        <GroupHeader groupName={group.name} groupId={groupId!} />
 
         {/* Add Person Section */}
-        <Card p={4}>
-          <VStack spacing={3}>
-            <Heading size="md">Add Person to Group</Heading>
-            <HStack w="100%">
-              <Input
-                placeholder="Enter person's name"
-                value={newPersonName}
-                onChange={(e) => setNewPersonName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleAddPerson()}
-              />
-              <Button
-                colorScheme="green"
-                onClick={handleAddPerson}
-                isLoading={isAddingPerson}
-                loadingText="Adding..."
-              >
-                Add Person
-              </Button>
-            </HStack>
-          </VStack>
-        </Card>
+        <AddPersonForm
+          newPersonName={newPersonName}
+          setNewPersonName={setNewPersonName}
+          onAddPerson={handleAddPerson}
+          isAddingPerson={isAddingPerson}
+        />
 
         {/* Persons Section */}
-        <Box>
-          <Heading size="lg" mb={4}>
-            People ({persons.length})
-          </Heading>
-          {persons.length === 0 ? (
-            <Text color="gray.500" textAlign="center" py={8}>
-              No people in this group yet. Add someone above to get started!
-            </Text>
-          ) : (
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-              {persons.map((person) => (
-                <Card
-                  key={person.id}
-                  p={4}
-                  cursor="pointer"
-                  onClick={() => handlePersonClick(person)}
-                >
-                  <VStack spacing={2}>
-                    <Text fontWeight="bold">{person.name}</Text>
-                    {balances && balances[person.id] && (
-                      <VStack spacing={1}>
-                        <Text fontSize="sm" color="gray.600">
-                          Paid: ${balances[person.id].paid.toFixed(2)}
-                        </Text>
-                        <Text fontSize="sm" color="gray.600">
-                          Owes: ${balances[person.id].owes.toFixed(2)}
-                        </Text>
-                        <Badge
-                          colorScheme={
-                            balances[person.id].balance >= 0 ? "green" : "red"
-                          }
-                        >
-                          {balances[person.id].balance >= 0 ? "+" : ""}$
-                          {balances[person.id].balance.toFixed(2)}
-                        </Badge>
-                      </VStack>
-                    )}
-                    <Button
-                      size="sm"
-                      colorScheme="blue"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddExpense(person.id);
-                      }}
-                    >
-                      Add Expense
-                    </Button>
-                  </VStack>
-                </Card>
-              ))}
-            </SimpleGrid>
-          )}
-        </Box>
+        <PersonsList
+          persons={persons}
+          balances={balances}
+          onPersonClick={handlePersonClick}
+          onAddExpense={handleAddExpense}
+        />
 
         {/* Expenses Section */}
-        <Box>
-          <Heading size="lg" mb={4}>
-            Expenses ({expenses.length})
-          </Heading>
-          {expenses.length === 0 ? (
-            <Text color="gray.500" textAlign="center" py={8}>
-              No expenses yet. Click "Add Expense" on a person's card to get
-              started!
-            </Text>
-          ) : (
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              {expenses.map((expense) => (
-                <Card key={expense.id} p={4}>
-                  <HStack justify="space-between" align="start">
-                    <VStack align="start" spacing={2} flex={1}>
-                      <Text fontWeight="bold">{expense.name}</Text>
-                      <Text fontSize="lg" color="green.600">
-                        ${expense.amount.toFixed(2)}
-                      </Text>
-                      <Text fontSize="sm" color="gray.600">
-                        Paid by:{" "}
-                        {persons.find((p) => p.id === expense.payer_id)?.name ||
-                          "Unknown"}
-                      </Text>
-                    </VStack>
-                    <IconButton
-                      aria-label="Delete expense"
-                      icon={<DeleteIcon />}
-                      size="sm"
-                      colorScheme="red"
-                      variant="ghost"
-                      onClick={() => handleDeleteExpense(expense.id)}
-                    />
-                  </HStack>
-                </Card>
-              ))}
-            </SimpleGrid>
-          )}
-        </Box>
+        <ExpensesList
+          expenses={expenses}
+          persons={persons}
+          onDeleteExpense={handleDeleteExpense}
+        />
 
         {/* Balances Summary */}
-        {balances && Object.keys(balances).length > 0 && (
-          <Box>
-            <Heading size="lg" mb={4}>
-              Balance Summary
-            </Heading>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-              {Object.entries(balances).map(
-                ([personId, balance]: [string, any]) => (
-                  <Card key={personId} p={4}>
-                    <Stat>
-                      <StatLabel>{balance.name}</StatLabel>
-                      <StatNumber
-                        color={balance.balance >= 0 ? "green.500" : "red.500"}
-                      >
-                        {balance.balance >= 0 ? "+" : ""}$
-                        {balance.balance.toFixed(2)}
-                      </StatNumber>
-                      <StatHelpText>
-                        {balance.balance >= 0 ? "Should receive" : "Should pay"}
-                      </StatHelpText>
-                    </Stat>
-                  </Card>
-                )
-              )}
-            </SimpleGrid>
-          </Box>
-        )}
+        <BalancesSummary balances={balances} />
 
         {/* Back to Home */}
         <Box textAlign="center">

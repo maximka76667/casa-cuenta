@@ -1,0 +1,23 @@
+services:
+  # Your FastAPI Application
+  api:
+    build: .
+    ports:
+      - "8000:8000" # Maps your local port 8000 to the container's port 8000
+    environment:
+      - REDIS_URL=redis://redis:6379 # Notice the hostname is now 'redis'
+    depends_on:
+      - redis # Tells Docker to start the redis service first
+
+  # The Redis Server
+  redis:
+    image: "redis:7-alpine" # Uses the official Redis image
+    ports:
+      - "6379:6379" # Maps your local port 6379 to the container's port 6379
+    # Optional: Persist data to your host machine so it survives container restarts
+    # volumes:
+    #   - redis_data:/data
+
+# Optional: Define a volume for Redis persistence
+# volumes:
+#   redis_data:

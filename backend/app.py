@@ -9,20 +9,32 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from models.auth import AuthCredentials
 from models.person import PersonIn, PersonUpdate
-from models.expense import ExpenseIn, ExpenseUpdate, ExpenseCreate
+from models.expense import (
+    ExpenseIn,
+    ExpenseUpdate,
+    ExpenseCreate,
+    ExpenseOut,
+    ExpenseListResponse,
+)
 from models.group import GroupIn, GroupUpdate
 from models.group_user import GroupUserIn, GroupUserUpdate
 from models.expense_debtor import ExpenseDebtorIn, ExpenseDebtorUpdate
+
+import redis.asyncio as redis
 
 load_dotenv()
 
 app = FastAPI()
 security = HTTPBearer()
 
+
 SUPABASE_PROJECT_ID = os.getenv("SUPABASE_PROJECT_ID")
 SUPABASE_URL = f"https://{SUPABASE_PROJECT_ID}.supabase.co"
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+redis_pool = redis.ConnectionPool.from_url(REDIS_URL, decode_responses=True)
 
 # jwks_cache = None
 
@@ -69,6 +81,14 @@ app.add_middleware(
 )
 
 
+async def get_redis():
+    client = redis.Redis.from_pool(redis_pool)
+    try:
+        yield client
+    finally:
+        await client.aclose()
+
+
 @app.get("/")
 async def hello():
     return {"message": "Hello!"}
@@ -103,10 +123,26 @@ def get_expenses():
 
 
 @app.get("/expenses/{group_id}")
-def get_expenses_for_group(group_id: str):
+async def get_expenses_for_group(
+    group_id: str, redis_client: redis.Redis = Depends(get_redis)
+):
+    cache_key = f"expenses:group:{group_id}"
+    cached_data = await redis_client.get(cache_key)
+
+    if cached_data:
+        # If found in cache, return it parsed from JSON (super fast!)
+        print("Cache (Expenses): Returning from Redis.")
+        return ExpenseListResponse.model_validate_json(cached_data)
+
+    # If not found in cache -> fetch from db
     response = supabase.table("expenses").select("*").eq("group_id", group_id).execute()
 
-    return {"expenses": response.data}
+    expenses_list = response.data
+    response_data = ExpenseListResponse(expenses=expenses_list)
+
+    await redis_client.setex(cache_key, 30, response_data.model_dump_json())
+
+    return response_data
 
 
 @app.post("/expenses")

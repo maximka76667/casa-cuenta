@@ -5,7 +5,8 @@ services:
     ports:
       - "8000:8000" # Maps your local port 8000 to the container's port 8000
     environment:
-      - REDIS_URL=redis://redis:6379 # Notice the hostname is now 'redis'
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       - redis # Tells Docker to start the redis service first
 

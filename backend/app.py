@@ -19,6 +19,16 @@ from models.expense import (
 from models.group import GroupIn, GroupUpdate
 from models.group_user import GroupUserIn, GroupUserUpdate
 from models.expense_debtor import ExpenseDebtorIn, ExpenseDebtorUpdate
+from models.responses import (
+    DebtorListResponse,
+    PersonListResponse,
+    MemberListResponse,
+    GroupListResponse,
+    GroupResponse,
+    GroupPersonsResponse,
+    GroupBalancesResponse,
+    UserGroupsResponse,
+)
 
 import redis.asyncio as redis
 
@@ -89,6 +99,30 @@ async def get_redis():
         await client.aclose()
 
 
+async def invalidate_group_cache(redis_client: redis.Redis, group_id: str):
+    """Invalidate all cache keys related to a group"""
+    keys_to_delete = [
+        f"expenses:group:{group_id}",
+        f"debtors:group:{group_id}",
+        f"persons:group:{group_id}",
+        f"balances:group:{group_id}",
+        f"group:{group_id}"
+    ]
+    await redis_client.delete(*keys_to_delete)
+
+
+async def invalidate_global_cache(redis_client: redis.Redis, entity_type: str):
+    """Invalidate global cache keys for an entity type"""
+    keys_to_delete = [f"{entity_type}:all"]
+    await redis_client.delete(*keys_to_delete)
+
+
+async def invalidate_user_cache(redis_client: redis.Redis, user_id: str):
+    """Invalidate user-specific cache keys"""
+    keys_to_delete = [f"user:groups:{user_id}"]
+    await redis_client.delete(*keys_to_delete)
+
+
 @app.get("/")
 async def hello():
     return {"message": "Hello!"}
@@ -116,10 +150,20 @@ def signin(auth: AuthCredentials):
 
 # Expenses
 @app.get("/expenses")
-def get_expenses():
-    response = supabase.table("expenses").select("*").execute()
+async def get_expenses(redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = "expenses:all"
+    cached_data = await redis_client.get(cache_key)
 
-    return {"expenses": response.data}
+    if cached_data:
+        print("Cache (All Expenses): Returning from Redis.")
+        return ExpenseListResponse.model_validate_json(cached_data)
+
+    response = supabase.table("expenses").select("*").execute()
+    response_data = ExpenseListResponse(expenses=response.data)
+
+    await redis_client.setex(cache_key, 30, response_data.model_dump_json())
+
+    return response_data
 
 
 @app.get("/expenses/{group_id}")
@@ -146,7 +190,7 @@ async def get_expenses_for_group(
 
 
 @app.post("/expenses")
-def add_expense(expense: ExpenseCreate):
+async def add_expense(expense: ExpenseCreate, redis_client: redis.Redis = Depends(get_redis)):
 
     new_expense = {
         "name": expense.name,
@@ -169,6 +213,10 @@ def add_expense(expense: ExpenseCreate):
 
     response = supabase.table("expenses_debtors").insert(debtors_data).execute()
 
+    await invalidate_global_cache(redis_client, "expenses")
+    await invalidate_global_cache(redis_client, "debtors")
+    await invalidate_group_cache(redis_client, expense.group_id)
+
     return {
         "message": "Expense added",
         "expense": expense_response.data[0],
@@ -177,32 +225,66 @@ def add_expense(expense: ExpenseCreate):
 
 
 @app.delete("/expenses/{expense_id}")
-def delete_expense(expense_id: str):
+async def delete_expense(expense_id: str, redis_client: redis.Redis = Depends(get_redis)):
+    expense_data = supabase.table("expenses").select("group_id").eq("id", expense_id).execute()
+    group_id = expense_data.data[0]["group_id"] if expense_data.data else None
+    
     response = supabase.table("expenses").delete().eq("id", expense_id).execute()
+    
+    await invalidate_global_cache(redis_client, "expenses")
+    await invalidate_global_cache(redis_client, "debtors")
+    if group_id:
+        await invalidate_group_cache(redis_client, group_id)
+    
     return {"message": "Expense deleted", "deleted_expense": response.data}
 
 
 @app.put("/expenses/{expense_id}")
-def update_expense(expense_id: str, expense: ExpenseUpdate):
+async def update_expense(expense_id: str, expense: ExpenseUpdate, redis_client: redis.Redis = Depends(get_redis)):
+    expense_data = supabase.table("expenses").select("group_id").eq("id", expense_id).execute()
+    group_id = expense_data.data[0]["group_id"] if expense_data.data else None
+    
     response = (
         supabase.table("expenses")
         .update(expense.model_dump())
         .eq("id", expense_id)
         .execute()
     )
+    
+    await invalidate_global_cache(redis_client, "expenses")
+    if group_id:
+        await invalidate_group_cache(redis_client, group_id)
+    
     return {"message": "Expense updated", "expense": response.data}
 
 
 # Expense Debtors
 @app.get("/debtors")
-def get_debtors():
-    response = supabase.table("expenses_debtors").select("*").execute()
+async def get_debtors(redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = "debtors:all"
+    cached_data = await redis_client.get(cache_key)
 
-    return {"debtors": response.data}
+    if cached_data:
+        print("Cache (All Debtors): Returning from Redis.")
+        return DebtorListResponse.model_validate_json(cached_data)
+
+    response = supabase.table("expenses_debtors").select("*").execute()
+    response_data = DebtorListResponse(debtors=response.data)
+
+    await redis_client.setex(cache_key, 30, response_data.model_dump_json())
+
+    return response_data
 
 
 @app.get("/debtors/{group_id}")
-def get_debtors_for_group(group_id: str):
+async def get_debtors_for_group(group_id: str, redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = f"debtors:group:{group_id}"
+    cached_data = await redis_client.get(cache_key)
+
+    if cached_data:
+        print("Cache (Group Debtors): Returning from Redis.")
+        return DebtorListResponse.model_validate_json(cached_data)
+
     response = (
         supabase.from_("expenses_debtors")
         .select("*, expenses(group_id)")
@@ -210,144 +292,292 @@ def get_debtors_for_group(group_id: str):
         .execute()
     )
 
-    return {"debtors": response.data}
+    response_data = DebtorListResponse(debtors=response.data)
+
+    await redis_client.setex(cache_key, 30, response_data.model_dump_json())
+
+    return response_data
 
 
 @app.post("/debtors")
-def add_debtor(debtor: ExpenseDebtorIn):
+async def add_debtor(debtor: ExpenseDebtorIn, redis_client: redis.Redis = Depends(get_redis)):
     response = supabase.table("expenses_debtors").insert(debtor.model_dump()).execute()
+    
+    expense_data = supabase.table("expenses").select("group_id").eq("id", debtor.expense_id).execute()
+    group_id = expense_data.data[0]["group_id"] if expense_data.data else None
+    
+    await invalidate_global_cache(redis_client, "debtors")
+    if group_id:
+        await invalidate_group_cache(redis_client, group_id)
+    
     return {"message": "Debtor added", "debtor": response.data}
 
 
 @app.delete("/debtors/{debtor_id}")
-def delete_debtor(debtor_id: str):
+async def delete_debtor(debtor_id: str, redis_client: redis.Redis = Depends(get_redis)):
+    debtor_data = supabase.table("expenses_debtors").select("expense_id").eq("id", debtor_id).execute()
+    expense_id = debtor_data.data[0]["expense_id"] if debtor_data.data else None
+    
+    group_id = None
+    if expense_id:
+        expense_data = supabase.table("expenses").select("group_id").eq("id", expense_id).execute()
+        group_id = expense_data.data[0]["group_id"] if expense_data.data else None
+    
     response = supabase.table("expenses_debtors").delete().eq("id", debtor_id).execute()
+    
+    await invalidate_global_cache(redis_client, "debtors")
+    if group_id:
+        await invalidate_group_cache(redis_client, group_id)
+    
     return {"message": "Debtor deleted", "deleted_debtor": response.data}
 
 
 @app.put("/debtors/{debtor_id}")
-def update_debtor(debtor_id: str, debtor: ExpenseDebtorUpdate):
+async def update_debtor(debtor_id: str, debtor: ExpenseDebtorUpdate, redis_client: redis.Redis = Depends(get_redis)):
+    debtor_data = supabase.table("expenses_debtors").select("expense_id").eq("id", debtor_id).execute()
+    expense_id = debtor_data.data[0]["expense_id"] if debtor_data.data else None
+    
+    group_id = None
+    if expense_id:
+        expense_data = supabase.table("expenses").select("group_id").eq("id", expense_id).execute()
+        group_id = expense_data.data[0]["group_id"] if expense_data.data else None
+    
     response = (
         supabase.table("expenses_debtors")
         .update(debtor.model_dump())
         .eq("id", debtor_id)
         .execute()
     )
+    
+    await invalidate_global_cache(redis_client, "debtors")
+    if group_id:
+        await invalidate_group_cache(redis_client, group_id)
+    
     return {"message": "Debtor updated", "debtor": response.data}
 
 
 # Persons
 @app.get("/persons")
-def get_persons():
-    response = supabase.table("persons").select("*").execute()
+async def get_persons(redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = "persons:all"
+    cached_data = await redis_client.get(cache_key)
 
-    return {"persons": response.data}
+    if cached_data:
+        print("Cache (All Persons): Returning from Redis.")
+        return PersonListResponse.model_validate_json(cached_data)
+
+    response = supabase.table("persons").select("*").execute()
+    response_data = PersonListResponse(persons=response.data)
+
+    await redis_client.setex(cache_key, 30, response_data.model_dump_json())
+
+    return response_data
 
 
 @app.post("/persons")
-def add_person(person: PersonIn):
+async def add_person(person: PersonIn, redis_client: redis.Redis = Depends(get_redis)):
     try:
         response = supabase.table("persons").insert(person.model_dump()).execute()
     except:
         raise HTTPException(500, "Error on adding person")
+    
+    await invalidate_global_cache(redis_client, "persons")
+    await invalidate_group_cache(redis_client, person.group_id)
+    
     return {"message": "Person added", "person": response.data}
 
 
 @app.delete("/persons/{person_id}")
-def delete_person(person_id: str):
+async def delete_person(person_id: str, redis_client: redis.Redis = Depends(get_redis)):
+    person_data = supabase.table("persons").select("group_id").eq("id", person_id).execute()
+    group_id = person_data.data[0]["group_id"] if person_data.data else None
+    
     try:
         response = supabase.table("persons").delete().eq("id", person_id).execute()
     except:
         raise HTTPException(500, "Error on deleting person")
+    
+    await invalidate_global_cache(redis_client, "persons")
+    if group_id:
+        await invalidate_group_cache(redis_client, group_id)
+    
     return {"message": "Persone deleted", "deleted_person": response.data}
 
 
 @app.put("/persons/{person_id}")
-def update_person(person_id: str, person: PersonUpdate):
+async def update_person(person_id: str, person: PersonUpdate, redis_client: redis.Redis = Depends(get_redis)):
+    person_data = supabase.table("persons").select("group_id").eq("id", person_id).execute()
+    group_id = person_data.data[0]["group_id"] if person_data.data else None
+    
     response = (
         supabase.table("persons")
         .update(person.model_dump())
         .eq("id", person_id)
         .execute()
     )
+    
+    await invalidate_global_cache(redis_client, "persons")
+    if group_id:
+        await invalidate_group_cache(redis_client, group_id)
+    
     return {"message": "Person updated", "person": response.data}
 
 
 # Group Users
 @app.get("/members")
-def get_members():
-    response = supabase.table("group_users").select("*").execute()
+async def get_members(redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = "members:all"
+    cached_data = await redis_client.get(cache_key)
 
-    return {"members": response.data}
+    if cached_data:
+        print("Cache (All Members): Returning from Redis.")
+        return MemberListResponse.model_validate_json(cached_data)
+
+    response = supabase.table("group_users").select("*").execute()
+    response_data = MemberListResponse(members=response.data)
+
+    await redis_client.setex(cache_key, 30, response_data.model_dump_json())
+
+    return response_data
 
 
 @app.post("/members")
-def add_member(member: GroupUserIn):
+async def add_member(member: GroupUserIn, redis_client: redis.Redis = Depends(get_redis)):
     response = supabase.table("group_users").insert(member.model_dump()).execute()
+    
+    await invalidate_global_cache(redis_client, "members")
+    await invalidate_user_cache(redis_client, member.user_id)
+    
     return {"message": "Member added", "member": response.data}
 
 
 @app.delete("/members/{member_id}")
-def delete_member(member_id: str):
+async def delete_member(member_id: str, redis_client: redis.Redis = Depends(get_redis)):
+    member_data = supabase.table("group_users").select("user_id").eq("id", member_id).execute()
+    user_id = member_data.data[0]["user_id"] if member_data.data else None
+    
     response = supabase.table("group_users").delete().eq("id", member_id).execute()
+    
+    await invalidate_global_cache(redis_client, "members")
+    if user_id:
+        await invalidate_user_cache(redis_client, user_id)
+    
     return {"message": "Member deleted", "deleted_member": response.data}
 
 
 @app.put("/members/{member_id}")
-def update_member(member_id: str, member: GroupUserUpdate):
+async def update_member(member_id: str, member: GroupUserUpdate, redis_client: redis.Redis = Depends(get_redis)):
+    member_data = supabase.table("group_users").select("user_id").eq("id", member_id).execute()
+    user_id = member_data.data[0]["user_id"] if member_data.data else None
+    
     response = (
         supabase.table("group_users")
         .update(member.model_dump())
         .eq("id", member_id)
         .execute()
     )
+    
+    await invalidate_global_cache(redis_client, "members")
+    if user_id:
+        await invalidate_user_cache(redis_client, user_id)
+    
     return {"message": "Member updated", "member": response.data}
 
 
 # Groups
 @app.get("/groups")
-def get_groups():
+async def get_groups(redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = "groups:all"
+    cached_data = await redis_client.get(cache_key)
+
+    if cached_data:
+        print("Cache (All Groups): Returning from Redis.")
+        return GroupListResponse.model_validate_json(cached_data)
+
     response = supabase.table("groups").select("*").execute()
-    return {"groups": response.data}
+    response_data = GroupListResponse(groups=response.data)
+
+    await redis_client.setex(cache_key, 30, response_data.model_dump_json())
+
+    return response_data
 
 
 @app.get("/groups/{group_id}")
-def get_group(group_id: str):
+async def get_group(group_id: str, redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = f"group:{group_id}"
+    cached_data = await redis_client.get(cache_key)
+
+    if cached_data:
+        print("Cache (Single Group): Returning from Redis.")
+        return GroupResponse.model_validate_json(cached_data)
+
     response = (
         supabase.table("groups").select("*").eq("id", group_id).single().execute()
     )
-    return {"group": response.data}
+    response_data = GroupResponse(group=response.data)
+
+    await redis_client.setex(cache_key, 30, response_data.model_dump_json())
+
+    return response_data
 
 
 @app.get("/groups/{group_id}/persons")
-def get_group_persons(group_id: str):
-    response = supabase.table("persons").select("*").eq("group_id", group_id).execute()
+async def get_group_persons(group_id: str, redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = f"persons:group:{group_id}"
+    cached_data = await redis_client.get(cache_key)
 
-    return {"persons": response.data}
+    if cached_data:
+        print("Cache (Group Persons): Returning from Redis.")
+        return GroupPersonsResponse.model_validate_json(cached_data)
+
+    response = supabase.table("persons").select("*").eq("group_id", group_id).execute()
+    response_data = GroupPersonsResponse(persons=response.data)
+
+    await redis_client.setex(cache_key, 30, response_data.model_dump_json())
+
+    return response_data
 
 
 @app.post("/groups")
-def add_group(group: GroupIn):
+async def add_group(group: GroupIn, redis_client: redis.Redis = Depends(get_redis)):
     response = supabase.table("groups").insert(group.model_dump()).execute()
+    
+    await invalidate_global_cache(redis_client, "groups")
+    
     return {"message": "Group added", "group": response.data}
 
 
 @app.delete("/groups/{group_id}")
-def delete_group(group_id: str):
+async def delete_group(group_id: str, redis_client: redis.Redis = Depends(get_redis)):
     response = supabase.table("groups").delete().eq("id", group_id).execute()
+    
+    await invalidate_global_cache(redis_client, "groups")
+    await invalidate_group_cache(redis_client, group_id)
+    
     return {"message": "Group deleted", "deleted_group": response.data}
 
 
 @app.put("/groups/{group_id}")
-def update_group(group_id: str, group: GroupUpdate):
+async def update_group(group_id: str, group: GroupUpdate, redis_client: redis.Redis = Depends(get_redis)):
     response = (
         supabase.table("groups").update(group.model_dump()).eq("id", group_id).execute()
     )
+    
+    await invalidate_global_cache(redis_client, "groups")
+    await invalidate_group_cache(redis_client, group_id)
+    
     return {"message": "Group updated", "group": response.data}
 
 
 @app.get("/groups/{group_id}/balances")
-def get_group_balances(group_id: str):
+async def get_group_balances(group_id: str, redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = f"balances:group:{group_id}"
+    cached_data = await redis_client.get(cache_key)
+
+    if cached_data:
+        print("Cache (Group Balances): Returning from Redis.")
+        return GroupBalancesResponse.model_validate_json(cached_data)
+
     # 1. Verify group exists
     group = supabase.table("groups").select("id").eq("id", group_id).single().execute()
     if not group.data:
@@ -362,7 +592,9 @@ def get_group_balances(group_id: str):
         .data
     )
     if not persons:
-        return {"balances": {}}
+        response_data = GroupBalancesResponse(balances={})
+        await redis_client.setex(cache_key, 15, response_data.model_dump_json())
+        return response_data
 
     balances = {
         person["id"]: {
@@ -408,17 +640,32 @@ def get_group_balances(group_id: str):
     for person_id, data in balances.items():
         data["balance"] = data["paid"] - data["owes"]
 
-    return {"balances": balances}
+    response_data = GroupBalancesResponse(balances=balances)
+    await redis_client.setex(cache_key, 15, response_data.model_dump_json())
+
+    return response_data
 
 
 # Users
 @app.get("/users/{user_id}/groups")
-def get_user_groups(user_id: str):
+async def get_user_groups(user_id: str, redis_client: redis.Redis = Depends(get_redis)):
+    cache_key = f"user:groups:{user_id}"
+    cached_data = await redis_client.get(cache_key)
+
+    if cached_data:
+        print("Cache (User Groups): Returning from Redis.")
+        return UserGroupsResponse.model_validate_json(cached_data)
+
     response = (
         supabase.table("group_users")
-        .select("group:groups(id, name, created_at)")  # Fetch full group data
+        .select("group:groups(id, name, created_at)")
         .eq("user_id", user_id)
         .execute()
     )
 
-    return {"groups": [g["group"] for g in response.data]}
+    groups_data = [g["group"] for g in response.data]
+    response_data = UserGroupsResponse(groups=groups_data)
+
+    await redis_client.setex(cache_key, 60, response_data.model_dump_json())
+
+    return response_data

@@ -33,4 +33,4 @@ class ExpenseCreate(BaseModel):
 
 
 class ExpenseListResponse(BaseModel):
-    expenses: List[ExpenseOut]
+    expenses: List[dict]

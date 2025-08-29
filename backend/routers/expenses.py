@@ -2,17 +2,13 @@ from dependencies import get_redis, get_supabase
 from fastapi import APIRouter, BackgroundTasks, Depends
 import redis.asyncio as redis
 import json
-from models.expense import ExpenseListResponse
+from models.expense import ExpenseListResponse, ExpenseCreate, ExpenseUpdate
 import asyncio
 
 router = APIRouter(
     prefix="/expenses",
     tags=["expenses"],
 )
-
-
-async def set_cache(redis_client, key, field, value):
-    await redis_client.hset(key, field, value)
 
 
 # Expenses
@@ -23,115 +19,83 @@ async def get_expenses(
     supabase=Depends(get_supabase),
 ):
     cache_key = "expenses:all"
-    data = await redis_client.hgetall(cache_key)
 
-    if data:
-        expenses = [json.loads(v) for v in data.values()]
-    else:
-        expenses = supabase.table("expenses").select("*").execute().data
-        for e in expenses:
-            background_tasks.add_task(
-                set_cache, redis_client, cache_key, e["id"], json.dumps(e)
-            )
+    # Try to get from cache
+    expenses = await get_cached_expenses(redis_client, cache_key)
+
+    # If not in cache, get from database and cache it
+    if not expenses:
+        expenses = get_all_expenses_from_db(supabase)
+        await cache_expenses(background_tasks, redis_client, cache_key, expenses)
 
     return ExpenseListResponse(expenses=expenses)
 
 
-# @router.get("/groups/{group_id}/expenses")
-# async def get_expenses_for_group(group_id: str):
-#     cache_key = f"groups:{group_id}:expenses"
-#     data = await get_cache(cache_key)
+@router.post("/")
+async def add_expense(
+    expense: ExpenseCreate,
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    # Create expense
+    expense_data = await create_expense_record(supabase, expense)
 
-#     if not data:
+    # Create debtors
+    debtors_data = await create_debtors_records(
+        supabase, expense_data["id"], expense.amount, expense.debtors
+    )
 
-#         data = (
-#             supabase.table("expenses")
-#             .select("*")
-#             .eq("group_id", group_id)
-#             .execute()
-#             .data
-#         )
-#         background_tasks.add_task(set_cache, data, cache_key)
+    # Update cache
+    await update_expense_cache(
+        background_tasks, redis_client, expense_data, expense.group_id
+    )
 
-#     return ExpenseListResponse(expenses=expenses_list)
-
-
-# @router.post("/")
-# async def add_expense(
-#     expense: ExpenseCreate, redis_client: redis.Redis = Depends(get_redis)
-# ):
-
-#     new_expense = {
-#         "name": expense.name,
-#         "amount": expense.amount,
-#         "payer_id": expense.payer_id,
-#         "group_id": expense.group_id,
-#     }
-#     expense_response = supabase.table("expenses").insert(new_expense).execute()
-
-#     # Get inserted expense id
-#     expense_id = expense_response.data[0]["id"]
-
-#     # Share expense amount equally between debtors
-#     share_amount = expense.amount / len(expense.debtors)
-
-#     debtors_data = [
-#         {"expense_id": expense_id, "person_id": debtor_id, "amount": share_amount}
-#         for debtor_id in expense.debtors
-#     ]
-
-#     response = supabase.table("expenses_debtors").insert(debtors_data).execute()
-
-#     await invalidate_global_cache(redis_client, "expenses")
-#     await invalidate_global_cache(redis_client, "debtors")
-#     await invalidate_group_cache(redis_client, expense.group_id)
-
-#     return {
-#         "message": "Expense added",
-#         "expense": expense_response.data[0],
-#         "debtors": response.data,
-#     }
+    return {
+        "message": "Expense added",
+        "expense": expense_data,
+        "debtors": debtors_data,
+    }
 
 
-# @router.delete("/{expense_id}")
-# async def delete_expense(
-#     expense_id: str, redis_client: redis.Redis = Depends(get_redis)
-# ):
-#     expense_data = (
-#         supabase.table("expenses").select("group_id").eq("id", expense_id).execute()
-#     )
-#     group_id = expense_data.data[0]["group_id"] if expense_data.data else None
+@router.delete("/{expense_id}")
+async def delete_expense(
+    expense_id: str,
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    # Get group_id before deletion
+    group_id = await get_expense_group_id(supabase, expense_id)
 
-#     response = supabase.table("expenses").delete().eq("id", expense_id).execute()
+    # Delete expense
+    response = await delete_expense_from_db(supabase, expense_id)
 
-#     await invalidate_global_cache(redis_client, "expenses")
-#     await invalidate_global_cache(redis_client, "debtors")
-#     if group_id:
-#         await invalidate_group_cache(redis_client, group_id)
+    # Remove from cache
+    await remove_expense_from_cache(
+        background_tasks, redis_client, expense_id, group_id
+    )
 
-#     return {"message": "Expense deleted", "deleted_expense": response.data}
+    return {"message": "Expense deleted", "deleted_expense": response.data}
 
 
-# @router.put("/{expense_id}")
-# async def update_expense(
-#     expense_id: str,
-#     expense: ExpenseUpdate,
-#     redis_client: redis.Redis = Depends(get_redis),
-# ):
-#     expense_data = (
-#         supabase.table("expenses").select("group_id").eq("id", expense_id).execute()
-#     )
-#     group_id = expense_data.data[0]["group_id"] if expense_data.data else None
+@router.put("/{expense_id}")
+async def update_expense(
+    expense_id: str,
+    expense: ExpenseUpdate,
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    # Get group_id for cache update
+    group_id = await get_expense_group_id(supabase, expense_id)
 
-#     response = (
-#         supabase.table("expenses")
-#         .update(expense.model_dump())
-#         .eq("id", expense_id)
-#         .execute()
-#     )
+    # Update expense
+    response = await update_expense_in_db(supabase, expense_id, expense)
 
-#     await invalidate_global_cache(redis_client, "expenses")
-#     if group_id:
-#         await invalidate_group_cache(redis_client, group_id)
+    # Update cache
+    await update_expense_cache(
+        background_tasks, redis_client, response.data[0], group_id
+    )
 
-#     return {"message": "Expense updated", "expense": response.data}
+    return {"message": "Expense updated", "expense": response.data}

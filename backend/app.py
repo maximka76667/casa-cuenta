@@ -34,6 +34,7 @@ from models.responses import (
 )
 
 from routers import expenses
+from routers import groups
 
 load_dotenv()
 
@@ -154,6 +155,7 @@ def signin(auth: AuthCredentials):
 
 
 app.include_router(expenses.router)
+app.include_router(groups.router)
 
 # # Expense Debtors
 # @app.get("/debtors")
@@ -422,174 +424,6 @@ app.include_router(expenses.router)
 #         await invalidate_user_cache(redis_client, user_id)
 
 #     return {"message": "Member updated", "member": response.data}
-
-
-# # Groups
-# @app.get("/groups")
-# async def get_groups(redis_client: redis.Redis = Depends(get_redis)):
-#     cache_key = "groups:all"
-#     cached_data = await redis_client.get(cache_key)
-
-#     if cached_data:
-#         print("Cache (All Groups): Returning from Redis.")
-#         return GroupListResponse.model_validate_json(cached_data)
-
-#     response = supabase.table("groups").select("*").execute()
-#     response_data = GroupListResponse(groups=response.data)
-
-#     await redis_client.setex(cache_key, 30, response_data.model_dump_json())
-
-#     return response_data
-
-
-# @app.get("/groups/{group_id}")
-# async def get_group(group_id: str, redis_client: redis.Redis = Depends(get_redis)):
-#     cache_key = f"group:{group_id}"
-#     cached_data = await redis_client.get(cache_key)
-
-#     if cached_data:
-#         print("Cache (Single Group): Returning from Redis.")
-#         return GroupResponse.model_validate_json(cached_data)
-
-#     response = (
-#         supabase.table("groups").select("*").eq("id", group_id).single().execute()
-#     )
-#     response_data = GroupResponse(group=response.data)
-
-#     await redis_client.setex(cache_key, 30, response_data.model_dump_json())
-
-#     return response_data
-
-
-# @app.get("/groups/{group_id}/persons")
-# async def get_group_persons(
-#     group_id: str, redis_client: redis.Redis = Depends(get_redis)
-# ):
-#     cache_key = f"persons:group:{group_id}"
-#     cached_data = await redis_client.get(cache_key)
-
-#     if cached_data:
-#         print("Cache (Group Persons): Returning from Redis.")
-#         return GroupPersonsResponse.model_validate_json(cached_data)
-
-#     response = supabase.table("persons").select("*").eq("group_id", group_id).execute()
-#     response_data = GroupPersonsResponse(persons=response.data)
-
-#     await redis_client.setex(cache_key, 30, response_data.model_dump_json())
-
-#     return response_data
-
-
-# @app.post("/groups")
-# async def add_group(group: GroupIn, redis_client: redis.Redis = Depends(get_redis)):
-#     response = supabase.table("groups").insert(group.model_dump()).execute()
-
-#     await invalidate_global_cache(redis_client, "groups")
-
-#     return {"message": "Group added", "group": response.data}
-
-
-# @app.delete("/groups/{group_id}")
-# async def delete_group(group_id: str, redis_client: redis.Redis = Depends(get_redis)):
-#     response = supabase.table("groups").delete().eq("id", group_id).execute()
-
-#     await invalidate_global_cache(redis_client, "groups")
-#     await invalidate_group_cache(redis_client, group_id)
-
-#     return {"message": "Group deleted", "deleted_group": response.data}
-
-
-# @app.put("/groups/{group_id}")
-# async def update_group(
-#     group_id: str, group: GroupUpdate, redis_client: redis.Redis = Depends(get_redis)
-# ):
-#     response = (
-#         supabase.table("groups").update(group.model_dump()).eq("id", group_id).execute()
-#     )
-
-#     await invalidate_global_cache(redis_client, "groups")
-#     await invalidate_group_cache(redis_client, group_id)
-
-#     return {"message": "Group updated", "group": response.data}
-
-
-# @app.get("/groups/{group_id}/balances")
-# async def get_group_balances(
-#     group_id: str, redis_client: redis.Redis = Depends(get_redis)
-# ):
-#     cache_key = f"balances:group:{group_id}"
-#     cached_data = await redis_client.get(cache_key)
-
-#     if cached_data:
-#         print("Cache (Group Balances): Returning from Redis.")
-#         return GroupBalancesResponse.model_validate_json(cached_data)
-
-#     # 1. Verify group exists
-#     group = supabase.table("groups").select("id").eq("id", group_id).single().execute()
-#     if not group.data:
-#         raise HTTPException(status_code=404, detail="Group not found")
-
-#     # 2. Get persons in group
-#     persons = (
-#         supabase.table("persons")
-#         .select("id, name")
-#         .eq("group_id", group_id)
-#         .execute()
-#         .data
-#     )
-#     if not persons:
-#         response_data = GroupBalancesResponse(balances={})
-#         await redis_client.setex(cache_key, 15, response_data.model_dump_json())
-#         return response_data
-
-#     balances = {
-#         person["id"]: {
-#             "name": person["name"],
-#             "paid": 0.0,
-#             "owes": 0.0,
-#             "balance": 0.0,
-#         }
-#         for person in persons
-#     }
-
-#     # 3. Get all expenses for this group
-#     expenses = (
-#         supabase.table("expenses")
-#         .select("id, amount, payer_id")
-#         .eq("group_id", group_id)
-#         .execute()
-#         .data
-#     )
-#     expense_ids = [e["id"] for e in expenses]
-
-#     # 4. Aggregate "paid" by payer
-#     for e in expenses:
-#         payer_id = e["payer_id"]
-#         if payer_id in balances:
-#             balances[payer_id]["paid"] += float(e["amount"])
-
-#     # 5. Get debtors only for this group's expenses
-#     if expense_ids:
-#         debtors = (
-#             supabase.table("expenses_debtors")
-#             .select("person_id, amount, expense_id")
-#             .in_("expense_id", expense_ids)
-#             .execute()
-#             .data
-#         )
-
-#         for d in debtors:
-#             if d["person_id"] in balances:
-#                 balances[d["person_id"]]["owes"] += float(d["amount"])
-
-#     # 6. Compute net balance
-#     for person_id, data in balances.items():
-#         data["balance"] = data["paid"] - data["owes"]
-
-#     response_data = GroupBalancesResponse(balances=balances)
-#     await redis_client.setex(cache_key, 15, response_data.model_dump_json())
-
-#     return response_data
 
 
 # # Users

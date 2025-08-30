@@ -1,9 +1,39 @@
 from dependencies import get_redis, get_supabase
-from fastapi import APIRouter, BackgroundTasks, Depends
-import redis.asyncio as redis
-import json
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from models.expense import ExpenseListResponse
-import asyncio
+from models.group import GroupIn, GroupUpdate
+from models.responses import (
+    GroupListResponse,
+    GroupResponse,
+    GroupPersonsResponse,
+    GroupBalancesResponse,
+)
+from helpers.cache_helpers import (
+    cache_single_object,
+    get_cached_items,
+    cache_items,
+    get_cached_single_object,
+    invalidate_cache,
+    invalidate_multiple_caches,
+)
+from helpers.group_helpers import (
+    get_all_groups_from_db,
+    get_group_by_id_from_db,
+    get_group_persons_from_db,
+    create_group_record,
+    delete_group_from_db,
+    update_group_in_db,
+    calculate_group_balances,
+)
+from helpers.expense_helpers import get_group_expenses_from_db
+from constants.cache_keys import (
+    GROUPS_ALL,
+    group_cache_key,
+    group_expenses_cache_key,
+    group_persons_cache_key,
+    group_balances_cache_key,
+)
+from constants.api_messages import SuccessMessages, ErrorMessages
 
 router = APIRouter(
     prefix="/groups",
@@ -11,41 +41,44 @@ router = APIRouter(
 )
 
 
-# # Groups
-# @router.get("/groups")
-# async def get_groups(redis_client: redis.Redis = Depends(get_redis)):
-#     cache_key = "groups:all"
-#     cached_data = await redis_client.get(cache_key)
+# Groups
+@router.get("/", response_model=GroupListResponse)
+async def get_groups(
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    cache_key = GROUPS_ALL
 
-#     if cached_data:
-#         print("Cache (All Groups): Returning from Redis.")
-#         return GroupListResponse.model_validate_json(cached_data)
+    # Try to get from cache
+    groups = await get_cached_items(redis_client, cache_key)
 
-#     response = supabase.table("groups").select("*").execute()
-#     response_data = GroupListResponse(groups=response.data)
+    # If not in cache, get from database and cache it
+    if not groups:
+        groups = await get_all_groups_from_db(supabase)
+        cache_items(background_tasks, redis_client, cache_key, groups)
 
-#     await redis_client.setex(cache_key, 30, response_data.model_dump_json())
-
-#     return response_data
+    return GroupListResponse(groups=groups)
 
 
-# @router.get("/groups/{group_id}")
-# async def get_group(group_id: str, redis_client: redis.Redis = Depends(get_redis)):
-#     cache_key = f"group:{group_id}"
-#     cached_data = await redis_client.get(cache_key)
+@router.get("/{group_id}", response_model=GroupResponse)
+async def get_group(
+    group_id: str,
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    cache_key = group_cache_key(group_id)
 
-#     if cached_data:
-#         print("Cache (Single Group): Returning from Redis.")
-#         return GroupResponse.model_validate_json(cached_data)
+    # Try to get from cache
+    group = await get_cached_single_object(redis_client, cache_key)
 
-#     response = (
-#         supabase.table("groups").select("*").eq("id", group_id).single().execute()
-#     )
-#     response_data = GroupResponse(group=response.data)
+    # If not in cache, get from database and cache it
+    if not group:
+        group = await get_group_by_id_from_db(supabase, group_id)
+        cache_single_object(background_tasks, redis_client, cache_key, group)
 
-#     await redis_client.setex(cache_key, 30, response_data.model_dump_json())
-
-#     return response_data
+    return GroupResponse(group=group)
 
 
 @router.get("/{group_id}/expenses", response_model=ExpenseListResponse)
@@ -55,153 +88,143 @@ async def get_expenses_for_group(
     redis_client=Depends(get_redis),
     supabase=Depends(get_supabase),
 ):
-    cache_key = f"groups:{group_id}:expenses"
-    data = await redis_client.hgetall(cache_key)
+    cache_key = group_expenses_cache_key(group_id)
 
-    if data:
-        expenses = [json.loads(v) for v in data.values()]
-    else:
-        expenses = (
-            supabase.table("expenses")
-            .select("*")
-            .eq("group_id", group_id)
-            .execute()
-            .data
-        )
-        for e in expenses:
-            background_tasks.add_task(
-                redis_client.hset, cache_key, e["id"], json.dumps(e)
-            )
+    # Try to get from cache
+    expenses = await get_cached_items(redis_client, cache_key)
+
+    # If not in cache, get from database and cache it
+    if not expenses:
+        expenses = await get_group_expenses_from_db(supabase, group_id)
+        cache_items(background_tasks, redis_client, cache_key, expenses)
 
     return ExpenseListResponse(expenses=expenses)
 
 
-# @router.get("/groups/{group_id}/persons")
-# async def get_group_persons(
-#     group_id: str, redis_client: redis.Redis = Depends(get_redis)
-# ):
-#     cache_key = f"persons:group:{group_id}"
-#     cached_data = await redis_client.get(cache_key)
+@router.get("/{group_id}/persons", response_model=GroupPersonsResponse)
+async def get_group_persons(
+    group_id: str,
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    cache_key = group_persons_cache_key(group_id)
 
-#     if cached_data:
-#         print("Cache (Group Persons): Returning from Redis.")
-#         return GroupPersonsResponse.model_validate_json(cached_data)
+    # Try to get from cache
+    persons = await get_cached_items(redis_client, cache_key)
 
-#     response = supabase.table("persons").select("*").eq("group_id", group_id).execute()
-#     response_data = GroupPersonsResponse(persons=response.data)
+    # If not in cache, get from database and cache it
+    if not persons:
+        persons = await get_group_persons_from_db(supabase, group_id)
+        cache_items(background_tasks, redis_client, cache_key, persons)
 
-#     await redis_client.setex(cache_key, 30, response_data.model_dump_json())
-
-#     return response_data
-
-
-# @router.post("/groups")
-# async def add_group(group: GroupIn, redis_client: redis.Redis = Depends(get_redis)):
-#     response = supabase.table("groups").insert(group.model_dump()).execute()
-
-#     await invalidate_global_cache(redis_client, "groups")
-
-#     return {"message": "Group added", "group": response.data}
+    return GroupPersonsResponse(persons=persons)
 
 
-# @router.delete("/groups/{group_id}")
-# async def delete_group(group_id: str, redis_client: redis.Redis = Depends(get_redis)):
-#     response = supabase.table("groups").delete().eq("id", group_id).execute()
+@router.post("/")
+async def add_group(
+    group: GroupIn,
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    try:
+        group_data = await create_group_record(supabase, group)
+        if not group_data:
+            raise HTTPException(500, ErrorMessages.ERROR_ADDING_GROUP)
 
-#     await invalidate_global_cache(redis_client, "groups")
-#     await invalidate_group_cache(redis_client, group_id)
+        # Invalidate caches
+        cache_key = GROUPS_ALL
+        invalidate_cache(background_tasks, redis_client, cache_key)
 
-#     return {"message": "Group deleted", "deleted_group": response.data}
-
-
-# @router.put("/groups/{group_id}")
-# async def update_group(
-#     group_id: str, group: GroupUpdate, redis_client: redis.Redis = Depends(get_redis)
-# ):
-#     response = (
-#         supabase.table("groups").update(group.model_dump()).eq("id", group_id).execute()
-#     )
-
-#     await invalidate_global_cache(redis_client, "groups")
-#     await invalidate_group_cache(redis_client, group_id)
-
-#     return {"message": "Group updated", "group": response.data}
+        return {"message": SuccessMessages.GROUP_ADDED, "group": group_data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, ErrorMessages.ERROR_ADDING_GROUP)
 
 
-# @router.get("/groups/{group_id}/balances")
-# async def get_group_balances(
-#     group_id: str, redis_client: redis.Redis = Depends(get_redis)
-# ):
-#     cache_key = f"balances:group:{group_id}"
-#     cached_data = await redis_client.get(cache_key)
+@router.delete("/{group_id}")
+async def delete_group(
+    group_id: str,
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    try:
+        response = await delete_group_from_db(supabase, group_id)
+        if not response.data:
+            raise HTTPException(404, ErrorMessages.GROUP_NOT_FOUND)
 
-#     if cached_data:
-#         print("Cache (Group Balances): Returning from Redis.")
-#         return GroupBalancesResponse.model_validate_json(cached_data)
+        # Invalidate multiple caches
+        cache_keys_to_invalidate = [
+            GROUPS_ALL,
+            group_cache_key(group_id),
+            group_expenses_cache_key(group_id),
+            group_persons_cache_key(group_id),
+            group_balances_cache_key(group_id),
+        ]
+        invalidate_multiple_caches(
+            background_tasks, redis_client, cache_keys_to_invalidate
+        )
 
-#     # 1. Verify group exists
-#     group = supabase.table("groups").select("id").eq("id", group_id).single().execute()
-#     if not group.data:
-#         raise HTTPException(status_code=404, detail="Group not found")
+        return {"message": SuccessMessages.GROUP_DELETED, "deleted_group": response}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ErrorMessages.ERROR_DELETING_GROUP)
 
-#     # 2. Get persons in group
-#     persons = (
-#         supabase.table("persons")
-#         .select("id, name")
-#         .eq("group_id", group_id)
-#         .execute()
-#         .data
-#     )
-#     if not persons:
-#         response_data = GroupBalancesResponse(balances={})
-#         await redis_client.setex(cache_key, 15, response_data.model_dump_json())
-#         return response_data
 
-#     balances = {
-#         person["id"]: {
-#             "name": person["name"],
-#             "paid": 0.0,
-#             "owes": 0.0,
-#             "balance": 0.0,
-#         }
-#         for person in persons
-#     }
+@router.put("/{group_id}")
+async def update_group(
+    group_id: str,
+    group: GroupUpdate,
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    try:
+        response = await update_group_in_db(supabase, group_id, group)
+        if not response.data:
+            raise HTTPException(404, ErrorMessages.GROUP_NOT_FOUND)
 
-#     # 3. Get all expenses for this group
-#     expenses = (
-#         supabase.table("expenses")
-#         .select("id, amount, payer_id")
-#         .eq("group_id", group_id)
-#         .execute()
-#         .data
-#     )
-#     expense_ids = [e["id"] for e in expenses]
+        # Invalidate caches
+        cache_keys_to_invalidate = [
+            GROUPS_ALL,
+            group_cache_key(group_id),
+        ]
+        invalidate_multiple_caches(
+            background_tasks, redis_client, cache_keys_to_invalidate
+        )
 
-#     # 4. Aggregate "paid" by payer
-#     for e in expenses:
-#         payer_id = e["payer_id"]
-#         if payer_id in balances:
-#             balances[payer_id]["paid"] += float(e["amount"])
+        return {"message": SuccessMessages.GROUP_UPDATED, "group": response.data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=ErrorMessages.ERROR_UPDATING_GROUP)
 
-#     # 5. Get debtors only for this group's expenses
-#     if expense_ids:
-#         debtors = (
-#             supabase.table("expenses_debtors")
-#             .select("person_id, amount, expense_id")
-#             .in_("expense_id", expense_ids)
-#             .execute()
-#             .data
-#         )
 
-#         for d in debtors:
-#             if d["person_id"] in balances:
-#                 balances[d["person_id"]]["owes"] += float(d["amount"])
+@router.get("/{group_id}/balances", response_model=GroupBalancesResponse)
+async def get_group_balances(
+    group_id: str,
+    background_tasks: BackgroundTasks,
+    redis_client=Depends(get_redis),
+    supabase=Depends(get_supabase),
+):
+    cache_key = group_balances_cache_key(group_id)
 
-#     # 6. Compute net balance
-#     for person_id, data in balances.items():
-#         data["balance"] = data["paid"] - data["owes"]
+    # Try to get from cache
+    balances = await get_cached_single_object(redis_client, cache_key)
 
-#     response_data = GroupBalancesResponse(balances=balances)
-#     await redis_client.setex(cache_key, 15, response_data.model_dump_json())
+    # If not in cache, calculate from database and cache it
+    if not balances:
+        balances = await calculate_group_balances(supabase, group_id)
+        # Store as a single item list for cache consistency
+        cache_single_object(
+            background_tasks,
+            redis_client,
+            cache_key,
+            balances,
+        )
 
-#     return response_data
+    return GroupBalancesResponse(balances=balances)

@@ -65,7 +65,7 @@ export const getExpenses = async (
   controller?: AbortController
 ) => {
   const res = await axios.get<{ expenses: Expense[] }>(
-    `${API_BASE_URL}/expenses/${groupId}`,
+    `${API_BASE_URL}/groups/${groupId}/expenses`,
     {
       signal: controller?.signal,
     }

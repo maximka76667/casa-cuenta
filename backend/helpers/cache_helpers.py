@@ -1,17 +1,75 @@
 import json
 from typing import List, Dict, Any, Optional
+from datetime import datetime, date
+
+
+def serialize_dates(v):
+    return v.isoformat() if isinstance(v, datetime) else v
+
+
+def datetime_parser(dct):
+    for k, v in dct.items():
+        if isinstance(v, str) and v.endswith("+00:00"):
+            try:
+                dct[k] = datetime.fromisoformat(v)
+            except:
+                pass
+    return dct
+
+
+async def cache_single_object_async(redis_client, cache_key: str, data: Dict):
+    """Cache a single object directly (not as part of a hash)"""
+    data_json = json.dumps(data, default=serialize_dates)
+    await redis_client.set(cache_key, data_json)
+
+
+async def get_cached_single_object_async(
+    redis_client, cache_key: str
+) -> Optional[Dict]:
+    """Get a single cached object"""
+    data = await redis_client.get(cache_key)
+    if data:
+        return json.loads(data, object_hook=datetime_parser)
+    return None
+
+
+def cache_single_object(background_tasks, redis_client, cache_key: str, data: Dict):
+    """Cache a single object using background tasks"""
+    background_tasks.add_task(cache_single_object_async, redis_client, cache_key, data)
+
+
+async def get_cached_single_object(redis_client, cache_key: str) -> Optional[Dict]:
+    """Get a single cached object (for use in routes)"""
+    return await get_cached_single_object_async(redis_client, cache_key)
+
+
+async def get_cached_items_async(redis_client, cache_key: str):
+    return await redis_client.hgetall(cache_key)
+
+
+async def cache_item_async(redis_client, cache_key: str, item_id: str, item_json: str):
+    await redis_client.hset(cache_key, item_id, item_json)
+
+
+async def delete_cache_item_async(redis_client, cache_key: str, item_id: str):
+    await redis_client.hdel(cache_key, item_id)
+
+
+async def delete_cache_key_async(redis_client, cache_key: str):
+    """Delete entire cache key"""
+    await redis_client.delete(cache_key)
 
 
 # Generic cache functions
 async def get_cached_items(redis_client, cache_key: str) -> Optional[List[Dict]]:
     """Generic function to get items from cache"""
-    data = await redis_client.hgetall(cache_key)
+    data = await get_cached_items_async(redis_client, cache_key)
     if data:
-        return [json.loads(v) for v in data.values()]
+        return [json.loads(v, object_hook=datetime_parser) for v in data.values()]
     return None
 
 
-async def cache_items(
+def cache_items(
     background_tasks,
     redis_client,
     cache_key: str,
@@ -19,13 +77,18 @@ async def cache_items(
     id_field: str = "id",
 ):
     """Generic function to cache list of items"""
+
     for item in items:
+
+        item_json = json.dumps(item, default=serialize_dates)
+        print(f"Set {item_json}")
+
         background_tasks.add_task(
-            redis_client.hset, cache_key, item[id_field], json.dumps(item)
+            cache_item_async, redis_client, cache_key, item[id_field], item_json
         )
 
 
-async def update_item_cache(
+def update_item_cache(
     background_tasks,
     redis_client,
     cache_key: str,
@@ -34,85 +97,26 @@ async def update_item_cache(
 ):
     """Generic function to update single item in cache"""
     item_id = item_data[id_field]
-    item_json = json.dumps(item_data)
-    background_tasks.add_task(redis_client.hset, cache_key, item_id, item_json)
+    item_json = json.dumps(item_data, default=serialize_dates)
+    print(f"Update {item_json}")
+    background_tasks.add_task(
+        cache_item_async, redis_client, cache_key, item_id, item_json
+    )
 
 
-async def remove_item_from_cache(
+def remove_item_from_cache(
     background_tasks, redis_client, cache_key: str, item_id: str
 ):
     """Generic function to remove item from cache"""
-    background_tasks.add_task(redis_client.hdel, cache_key, item_id)
+    background_tasks.add_task(delete_cache_item_async, redis_client, cache_key, item_id)
 
 
-# Specific expense cache functions built on top of generic ones
-async def get_cached_expenses(redis_client, cache_key: str) -> Optional[List[Dict]]:
-    """Get expenses from cache"""
-    return await get_cached_items(redis_client, cache_key)
+def invalidate_cache(background_tasks, redis_client, cache_key: str):
+    """Generic function to invalidate/delete entire cache key"""
+    background_tasks.add_task(delete_cache_key_async, redis_client, cache_key)
 
 
-async def cache_expenses(
-    background_tasks, redis_client, cache_key: str, expenses: List[Dict]
-):
-    """Cache list of expenses"""
-    await cache_items(background_tasks, redis_client, cache_key, expenses)
-
-
-async def update_expense_cache(
-    background_tasks, redis_client, expense_data: Dict, group_id: str
-):
-    """Update expense in multiple cache locations"""
-    expense_id = expense_data["id"]
-
-    # Update in global cache
-    await update_item_cache(
-        background_tasks, redis_client, "expenses:all", expense_data
-    )
-
-    # Update in group cache
-    await update_item_cache(
-        background_tasks, redis_client, f"groups:{group_id}:expenses", expense_data
-    )
-
-
-async def remove_expense_from_cache(
-    background_tasks, redis_client, expense_id: str, group_id: str = None
-):
-    """Remove expense from multiple cache locations"""
-    # Remove from global cache
-    await remove_item_from_cache(
-        background_tasks, redis_client, "expenses:all", expense_id
-    )
-
-    # Remove from group cache
-    if group_id:
-        await remove_item_from_cache(
-            background_tasks, redis_client, f"groups:{group_id}:expenses", expense_id
-        )
-
-
-# Example: You can now easily create cache functions for other entities
-async def get_cached_groups(redis_client, cache_key: str) -> Optional[List[Dict]]:
-    """Get groups from cache"""
-    return await get_cached_items(redis_client, cache_key)
-
-
-async def cache_groups(
-    background_tasks, redis_client, cache_key: str, groups: List[Dict]
-):
-    """Cache list of groups"""
-    await cache_items(background_tasks, redis_client, cache_key, groups)
-
-
-async def update_group_cache(
-    background_tasks, redis_client, cache_key: str, group_data: Dict
-):
-    """Update single group in cache"""
-    await update_item_cache(background_tasks, redis_client, cache_key, group_data)
-
-
-async def remove_group_from_cache(
-    background_tasks, redis_client, cache_key: str, group_id: str
-):
-    """Remove group from cache"""
-    await remove_item_from_cache(background_tasks, redis_client, cache_key, group_id)
+def invalidate_multiple_caches(background_tasks, redis_client, cache_keys: List[str]):
+    """Generic function to invalidate multiple cache keys"""
+    for cache_key in cache_keys:
+        background_tasks.add_task(delete_cache_key_async, redis_client, cache_key)

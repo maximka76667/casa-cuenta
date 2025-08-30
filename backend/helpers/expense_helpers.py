@@ -1,3 +1,6 @@
+from models.expense import ExpenseCreate
+
+
 async def get_all_expenses_from_db(supabase):
     """Get all expenses from database"""
     return supabase.table("expenses").select("*").execute().data

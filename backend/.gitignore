@@ -7,3 +7,6 @@ __pycache__/*
 
 tests/__pycache__
 tests/__pycache__/*
+
+models/__pycache__
+models/__pycache__/*

@@ -8,3 +8,4 @@ async def get_user_groups_from_db(supabase, user_id: str):
     )
     return [g["group"] for g in response.data]
 
+

@@ -1,7 +1,6 @@
 from dependencies import get_redis, get_supabase
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from models.person import PersonIn, PersonUpdate
-from models.responses import PersonListResponse
+from models.person import PersonIn, PersonUpdate, PersonListResponse
 from helpers.cache_helpers import get_cached_items, cache_items, invalidate_cache
 from helpers.person_helpers import (
     get_all_persons_from_db,

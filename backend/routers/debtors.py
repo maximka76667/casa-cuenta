@@ -1,7 +1,6 @@
 from dependencies import get_redis, get_supabase
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from models.expense_debtor import ExpenseDebtorIn, ExpenseDebtorUpdate
-from models.responses import DebtorListResponse
+from models.debtor import ExpenseDebtorIn, ExpenseDebtorUpdate, DebtorListResponse
 from helpers.cache_helpers import get_cached_items, cache_items, invalidate_cache
 from helpers.debtor_helpers import (
     get_all_debtors_from_db,

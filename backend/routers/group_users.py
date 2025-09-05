@@ -1,7 +1,6 @@
 from dependencies import get_redis, get_supabase
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from models.group_user import GroupUserIn, GroupUserUpdate
-from models.responses import MemberListResponse
+from models.group_user import GroupUserIn, GroupUserUpdate, GroupUsersListResponse
 from helpers.cache_helpers import get_cached_items, cache_items, invalidate_cache
 from helpers.member_helpers import (
     get_all_members_from_db,
@@ -19,7 +18,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=MemberListResponse)
+@router.get("/", response_model=GroupUsersListResponse)
 async def get_members(
     background_tasks: BackgroundTasks,
     redis_client=Depends(get_redis),
@@ -35,7 +34,7 @@ async def get_members(
         members = await get_all_members_from_db(supabase)
         cache_items(background_tasks, redis_client, cache_key, members)
 
-    return MemberListResponse(members=members)
+    return GroupUsersListResponse(members=members)
 
 
 @router.post("/")

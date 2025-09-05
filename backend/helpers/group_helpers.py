@@ -29,15 +29,18 @@ async def create_group_record(supabase, group: GroupIn):
 async def delete_group_from_db(supabase, group_id: str):
     """Delete group from database"""
     response = supabase.table("groups").delete().eq("id", group_id).execute()
-    return response.data
+    return response.data[0] if response.data else None
 
 
 async def update_group_in_db(supabase, group_id: str, group: GroupUpdate):
     """Update group in database"""
     response = (
-        supabase.table("groups").update(group.model_dump()).eq("id", group_id).execute()
+        supabase.table("groups")
+        .update(group.model_dump(exclude_unset=True))
+        .eq("id", group_id)
+        .execute()
     )
-    return response.data
+    return response.data[0] if response.data else None
 
 
 async def calculate_group_balances(supabase, group_id: str):
@@ -103,4 +106,3 @@ async def calculate_group_balances(supabase, group_id: str):
         data["balance"] = data["paid"] - data["owes"]
 
     return balances
-

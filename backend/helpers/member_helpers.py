@@ -30,9 +30,8 @@ async def update_member_in_db(supabase, member_id: str, member: GroupUserUpdate)
     """Update member in database"""
     response = (
         supabase.table("group_users")
-        .update(member.model_dump())
+        .update(member.model_dump(exclude_unset=True))
         .eq("id", member_id)
         .execute()
     )
     return response.data
-

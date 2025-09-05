@@ -1,6 +1,6 @@
 from dependencies import get_redis, get_supabase
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from models.responses import UserGroupsResponse
+from models.user import UserGroupsResponse
 from helpers.cache_helpers import get_cached_items, cache_items
 from helpers.user_helpers import get_user_groups_from_db
 from constants.cache_keys import user_groups_cache_key

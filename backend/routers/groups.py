@@ -1,13 +1,15 @@
 from dependencies import get_redis, get_supabase
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from models.expense import ExpenseListResponse
-from models.group import GroupIn, GroupUpdate
-from models.responses import (
+from models.group import (
+    GroupIn,
+    GroupUpdate,
     GroupListResponse,
     GroupResponse,
     GroupPersonsResponse,
     GroupBalancesResponse,
 )
+
 from helpers.cache_helpers import (
     cache_single_object,
     get_cached_items,
@@ -16,6 +18,7 @@ from helpers.cache_helpers import (
     invalidate_cache,
     invalidate_multiple_caches,
 )
+
 from helpers.group_helpers import (
     get_all_groups_from_db,
     get_group_by_id_from_db,
@@ -25,6 +28,7 @@ from helpers.group_helpers import (
     update_group_in_db,
     calculate_group_balances,
 )
+
 from helpers.expense_helpers import get_group_expenses_from_db
 from constants.cache_keys import (
     GROUPS_ALL,
@@ -153,7 +157,7 @@ async def delete_group(
 ):
     try:
         response = await delete_group_from_db(supabase, group_id)
-        if not response.data:
+        if not response:
             raise HTTPException(404, ErrorMessages.GROUP_NOT_FOUND)
 
         # Invalidate multiple caches
@@ -164,6 +168,7 @@ async def delete_group(
             group_persons_cache_key(group_id),
             group_balances_cache_key(group_id),
         ]
+
         invalidate_multiple_caches(
             background_tasks, redis_client, cache_keys_to_invalidate
         )
@@ -185,7 +190,7 @@ async def update_group(
 ):
     try:
         response = await update_group_in_db(supabase, group_id, group)
-        if not response.data:
+        if not response:
             raise HTTPException(404, ErrorMessages.GROUP_NOT_FOUND)
 
         # Invalidate caches
@@ -193,11 +198,12 @@ async def update_group(
             GROUPS_ALL,
             group_cache_key(group_id),
         ]
+
         invalidate_multiple_caches(
             background_tasks, redis_client, cache_keys_to_invalidate
         )
 
-        return {"message": SuccessMessages.GROUP_UPDATED, "group": response.data}
+        return {"message": SuccessMessages.GROUP_UPDATED, "group": response}
     except HTTPException:
         raise
     except Exception as e:

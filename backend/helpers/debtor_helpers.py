@@ -1,4 +1,4 @@
-from models.expense_debtor import ExpenseDebtorIn, ExpenseDebtorUpdate
+from models.debtor import ExpenseDebtorIn, ExpenseDebtorUpdate
 
 
 async def get_all_debtors_from_db(supabase):
@@ -54,9 +54,8 @@ async def update_debtor_in_db(supabase, debtor_id: str, debtor: ExpenseDebtorUpd
     """Update debtor in database"""
     response = (
         supabase.table("expenses_debtors")
-        .update(debtor.model_dump())
+        .update(debtor.model_dump(exclude_unset=True))
         .eq("id", debtor_id)
         .execute()
     )
     return response.data
-

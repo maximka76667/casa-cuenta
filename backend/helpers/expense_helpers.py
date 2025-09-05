@@ -22,6 +22,7 @@ async def create_expense_record(supabase, expense: ExpenseCreate):
         "group_id": expense.group_id,
     }
     response = supabase.table("expenses").insert(new_expense).execute()
+    print(response)
     return response.data[0]
 
 
@@ -53,9 +54,10 @@ async def delete_expense_from_db(supabase, expense_id: str):
 
 async def update_expense_in_db(supabase, expense_id: str, expense_data):
     """Update expense in database"""
+    print(expense_data)
     return (
         supabase.table("expenses")
-        .update(expense_data.model_dump())
+        .update(expense_data.model_dump(exclude_unset=True))
         .eq("id", expense_id)
         .execute()
     )

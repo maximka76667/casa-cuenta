@@ -38,3 +38,4 @@ def user_groups_cache_key(user_id: str) -> str:
     """Generate cache key for groups of a specific user"""
     return f"users:{user_id}:groups"
 
+

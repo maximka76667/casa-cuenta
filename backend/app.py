@@ -13,7 +13,7 @@ from routers import expenses
 from routers import groups
 from routers import debtors
 from routers import persons
-from routers import members
+from routers import group_users
 from routers import users
 
 load_dotenv()
@@ -97,5 +97,5 @@ app.include_router(expenses.router)
 app.include_router(groups.router)
 app.include_router(debtors.router)
 app.include_router(persons.router)
-app.include_router(members.router)
+app.include_router(group_users.router)
 app.include_router(users.router)

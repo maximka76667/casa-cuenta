@@ -1,6 +1,6 @@
 import json
-from typing import List, Dict, Any, Optional
-from datetime import datetime, date
+from typing import List, Dict, Optional
+from datetime import datetime
 
 
 def serialize_dates(v):

@@ -30,7 +30,7 @@ async def update_person_in_db(supabase, person_id: str, person: PersonUpdate):
     """Update person in database"""
     response = (
         supabase.table("persons")
-        .update(person.model_dump())
+        .update(person.model_dump(exclude_unset=True))
         .eq("id", person_id)
         .execute()
     )

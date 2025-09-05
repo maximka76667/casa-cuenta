@@ -101,6 +101,7 @@ async def add_expense(
     except HTTPException:
         raise
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=ErrorMessages.ERROR_ADDING_EXPENSE)
 
 
@@ -158,14 +159,14 @@ async def update_expense(
 ):
     try:
         # Validate expense amount if provided
-        if (
-            hasattr(expense, "amount")
-            and expense.amount is not None
-            and expense.amount <= 0
-        ):
-            raise HTTPException(
-                status_code=400, detail=ErrorMessages.INVALID_EXPENSE_AMOUNT
-            )
+        # if (
+        #     hasattr(expense, "amount")
+        #     and expense.amount is not None
+        #     and expense.amount <= 0
+        # ):
+        #     raise HTTPException(
+        #         status_code=400, detail=ErrorMessages.INVALID_EXPENSE_AMOUNT
+        #     )
 
         # Get group_id for cache update
         group_id = await get_expense_group_id(supabase, expense_id)
@@ -176,6 +177,8 @@ async def update_expense(
         response = await update_expense_in_db(supabase, expense_id, expense)
         if not response.data:
             raise HTTPException(status_code=404, detail=ErrorMessages.EXPENSE_NOT_FOUND)
+
+        print(response)
 
         # Update cache in multiple locations
         expense_data = response.data[0]
@@ -194,6 +197,7 @@ async def update_expense(
     except HTTPException:
         raise
     except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=500, detail=ErrorMessages.ERROR_UPDATING_EXPENSE
         )

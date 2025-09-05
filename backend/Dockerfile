@@ -4,7 +4,11 @@ WORKDIR /app
 
 # Copy requirements and install dependencies first (for better layer caching)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy .env file
+COPY .env .
 
 # Copy the rest of the application code
 COPY . .

@@ -81,7 +81,6 @@ def cache_items(
     for item in items:
 
         item_json = json.dumps(item, default=serialize_dates)
-        print(f"Set {item_json}")
 
         background_tasks.add_task(
             cache_item_async, redis_client, cache_key, item[id_field], item_json
@@ -98,7 +97,6 @@ def update_item_cache(
     """Generic function to update single item in cache"""
     item_id = item_data[id_field]
     item_json = json.dumps(item_data, default=serialize_dates)
-    print(f"Update {item_json}")
     background_tasks.add_task(
         cache_item_async, redis_client, cache_key, item_id, item_json
     )

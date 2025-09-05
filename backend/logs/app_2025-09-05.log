@@ -1,0 +1,74 @@
+2025-09-05 10:39:05 | INFO     | middlewares.rate_limiter:init_rate_limiter:85 - Rate limiter initialized with Redis storage
+2025-09-05 10:39:05 | INFO     | app:startup_event:84 - Application startup completed
+2025-09-05 10:39:23 | INFO     | app:hello:118 - Hello endpoint called
+2025-09-05 10:39:23 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:39:23 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET /favicon.ico | Duration: 0.001s | Status: 404
+2025-09-05 10:39:47 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET /metrics | Duration: 0.003s | Status: 200
+2025-09-05 10:42:22 | INFO     | middlewares.rate_limiter:init_rate_limiter:85 - Rate limiter initialized with Redis storage
+2025-09-05 10:42:22 | INFO     | app:startup_event:83 - Application startup completed
+2025-09-05 10:42:40 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:40 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:42 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:42 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:42 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:42 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:42:43 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:43 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:43 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:43 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:44 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:44 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:42:44 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:44 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:45 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:45 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.003s | Status: 200
+2025-09-05 10:42:45 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:45 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:46 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:46 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:46 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:46 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:42:47 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:47 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:42:47 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:47 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:42:48 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:48 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:48 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:48 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:48 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:48 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:42:49 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:49 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:42:49 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:42:49 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:44:13 | INFO     | middlewares.rate_limiter:init_rate_limiter:85 - Rate limiter initialized with Redis storage
+2025-09-05 10:44:13 | INFO     | app:startup_event:83 - Application startup completed
+2025-09-05 10:44:16 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:16 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:44:17 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:17 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:17 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:17 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:18 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:18 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:18 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:18 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:19 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:19 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:19 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:19 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:20 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:20 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:20 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:20 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:21 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:21 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:21 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:21 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:22 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:22 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200
+2025-09-05 10:44:22 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:22 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.001s | Status: 200
+2025-09-05 10:44:23 | INFO     | app:hello:117 - Hello endpoint called
+2025-09-05 10:44:23 | INFO     | middlewares.logger:log_performance:64 - PERFORMANCE | GET / | Duration: 0.002s | Status: 200

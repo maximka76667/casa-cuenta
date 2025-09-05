@@ -8,3 +8,7 @@ httpx
 # pytest-asyncio
 # pytest-cov
 redis
+loguru
+slowapi
+prometheus-client
+prometheus-fastapi-instrumentator

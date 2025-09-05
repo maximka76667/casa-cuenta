@@ -3,18 +3,20 @@ services:
   api:
     build: .
     ports:
-      - "8000:8000" # Maps your local port 8000 to the container's port 8000
+      - "8000:8000"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
-      - redis # Tells Docker to start the redis service first
+      - redis
+    volumes:
+      - ./logs:/app/logs  # Mount logs directory
 
   # The Redis Server
   redis:
-    image: "redis:7-alpine" # Uses the official Redis image
+    image: "redis:7-alpine"
     ports:
-      - "6379:6379" # Maps your local port 6379 to the container's port 6379
+      - "6379:6379"
     # Optional: Persist data to your host machine so it survives container restarts
     # volumes:
     #   - redis_data:/data

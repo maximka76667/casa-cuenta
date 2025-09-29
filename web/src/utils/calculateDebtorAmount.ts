@@ -46,11 +46,11 @@ export const calculateAllDebtorAmounts = (
   totalExpenseAmount: number
 ): Map<string, number> => {
   const amounts = new Map<string, number>();
-  
+
   debtors.forEach((debtor) => {
     const amount = calculateDebtorAmount(debtor, totalExpenseAmount, debtors);
     amounts.set(debtor.id, amount);
   });
-  
+
   return amounts;
 };

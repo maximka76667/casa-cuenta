@@ -1,12 +1,4 @@
-import {
-  Box,
-  Text,
-  Card,
-  VStack,
-  Flex,
-  HStack,
-  Badge,
-} from "@chakra-ui/react";
+import { Box, Text, Card, VStack, Flex, HStack, Badge } from "@chakra-ui/react";
 import { Expense } from "../interfaces/Expense";
 import { Person } from "../interfaces/Person";
 import { DebtorsExpense } from "../interfaces/DebtorsExpense";
@@ -24,7 +16,7 @@ const ExpenseDivisionBreakdown = ({
   debtors,
 }: ExpenseDivisionBreakdownProps) => {
   const getPersonName = (personId: string) => {
-    return persons.find(p => p.id === personId)?.name || "Unknown";
+    return persons.find((p) => p.id === personId)?.name || "Unknown";
   };
 
   return (
@@ -35,14 +27,21 @@ const ExpenseDivisionBreakdown = ({
       <VStack spacing={2} align="stretch">
         {debtors.map((debtor) => {
           const personName = getPersonName(debtor.person_id);
-          const calculatedAmount = calculateDebtorAmount(debtor, expense.amount, debtors);
-          const percentage = ((calculatedAmount / expense.amount) * 100).toFixed(1);
-          
+          const calculatedAmount = calculateDebtorAmount(
+            debtor,
+            expense.amount,
+            debtors
+          );
+          const percentage = (
+            (calculatedAmount / expense.amount) *
+            100
+          ).toFixed(1);
+
           return (
-            <Card 
-              key={debtor.id} 
-              p={3} 
-              bg="gray.50" 
+            <Card
+              key={debtor.id}
+              p={3}
+              bg="gray.50"
               borderWidth={1}
               borderColor="gray.200"
             >

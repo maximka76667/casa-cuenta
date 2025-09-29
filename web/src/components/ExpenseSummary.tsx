@@ -1,9 +1,4 @@
-import {
-  Box,
-  Card,
-  HStack,
-  Text,
-} from "@chakra-ui/react";
+import { Box, Card, HStack, Text } from "@chakra-ui/react";
 import { Expense } from "../interfaces/Expense";
 import { DebtorsExpense } from "../interfaces/DebtorsExpense";
 import { calculateDebtorAmount } from "../utils/calculateDebtorAmount";
@@ -15,7 +10,8 @@ interface ExpenseSummaryProps {
 
 const ExpenseSummary = ({ expense, debtors }: ExpenseSummaryProps) => {
   const totalDebtorAmount = debtors.reduce(
-    (sum, debtor) => sum + calculateDebtorAmount(debtor, expense.amount, debtors), 
+    (sum, debtor) =>
+      sum + calculateDebtorAmount(debtor, expense.amount, debtors),
     0
   );
 
@@ -43,4 +39,3 @@ const ExpenseSummary = ({ expense, debtors }: ExpenseSummaryProps) => {
 };
 
 export default ExpenseSummary;
-

@@ -44,7 +44,8 @@ const PersonInfo = ({
 
     // sum their calculated amounts
     const totalAmount = relatedDebtors.reduce(
-      (sum, d) => sum + calculateDebtorAmount(d, expense.amount, relatedDebtors), 
+      (sum, d) =>
+        sum + calculateDebtorAmount(d, expense.amount, relatedDebtors),
       0
     );
 
@@ -119,14 +120,14 @@ const PersonInfo = ({
 
                   const payerId = currentExpense?.payer_id;
                   const isPaidByActivePerson = activePerson.id === payerId;
-                  
+
                   // Calculate the actual amount for this debtor
                   const expenseDebtors = expenses.filter(
                     (d) => d.expense_id === expense.expense_id
                   );
                   const calculatedAmount = calculateDebtorAmount(
-                    expense, 
-                    currentExpense?.amount || 0, 
+                    expense,
+                    currentExpense?.amount || 0,
                     expenseDebtors
                   );
 

@@ -43,26 +43,28 @@ async def update_group_in_db(supabase, group_id: str, group: GroupUpdate):
     return response.data[0] if response.data else None
 
 
-def calculate_debtor_amount(debtor: dict, expense_amount: float, all_debtors: list) -> float:
+def calculate_debtor_amount(
+    debtor: dict, expense_amount: float, all_debtors: list
+) -> float:
     """Calculate actual dollar amount for a debtor based on split_type"""
     split_type = debtor.get("split_type", "equal")
     raw_amount = float(debtor["amount"])
-    
+
     if split_type == "equal":
         # For equal split, each person has amount = 1
         return expense_amount / len(all_debtors)
-    
+
     elif split_type == "percentage":
         # Raw amount is percentage (e.g., 50 for 50%)
         return (expense_amount * raw_amount) / 100
-    
+
     elif split_type == "portion":
         # Raw amount is portions (e.g., 30, 15, 15)
         total_portions = sum(float(d["amount"]) for d in all_debtors)
         if total_portions == 0:
             return 0
         return (expense_amount * raw_amount) / total_portions
-    
+
     else:
         # Fallback for unknown split types
         return raw_amount
@@ -104,7 +106,7 @@ async def calculate_group_balances(supabase, group_id: str):
         .execute()
         .data
     )
-    
+
     # Create expense lookup for quick access
     expense_lookup = {e["id"]: e for e in expenses}
     expense_ids = [e["id"] for e in expenses]
@@ -138,9 +140,9 @@ async def calculate_group_balances(supabase, group_id: str):
             expense = expense_lookup.get(expense_id)
             if not expense:
                 continue
-            
+
             expense_amount = float(expense["amount"])
-            
+
             for debtor in expense_debtors:
                 person_id = debtor["person_id"]
                 if person_id in balances:

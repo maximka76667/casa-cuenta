@@ -12,3 +12,4 @@ loguru
 slowapi
 prometheus-client
 prometheus-fastapi-instrumentator
+anthropic

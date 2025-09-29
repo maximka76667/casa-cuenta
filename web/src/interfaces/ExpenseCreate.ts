@@ -4,6 +4,7 @@ export interface ExpenseCreate {
   groupId: string;
   payerId: string;
   debtors: string[];
+  splitType: "equal" | "portion" | "percentage";
 }
 
 export type ExpenseCreateWithoutGroupId = Omit<ExpenseCreate, "groupId">;

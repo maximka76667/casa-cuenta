@@ -34,6 +34,7 @@ from middlewares.monitoring import track_cache_operation, track_database_operati
 # Constants
 from constants.cache_keys import (
     EXPENSES_ALL,
+    group_debtors_cache_key,
     group_expenses_cache_key,
     group_balances_cache_key,
 )
@@ -145,29 +146,38 @@ async def add_expense(
         # Create debtors with timing
         db_start = time.time()
         debtors_data = await create_debtors_records(
-            supabase, expense_data["id"], expense.amount, expense.debtors
+            supabase,
+            expense_data["id"],
+            expense.amount,
+            expense.debtors,
+            expense.split_type,
         )
         db_duration = time.time() - db_start
 
         log_database_operation("insert", "expense_debtors", db_duration)
         track_database_operation("insert", "expense_debtors", db_duration)
 
-        # Update cache in multiple locations
+        # Invalidate cache in multiple locations
         global_cache_key = EXPENSES_ALL
         group_cache_key = group_expenses_cache_key(expense.group_id)
+        balances_cache_key = group_balances_cache_key(expense.group_id)
+        debtors_cache_key = group_debtors_cache_key(expense.group_id)
 
-        update_item_cache(
-            background_tasks, redis_client, global_cache_key, expense_data
-        )
-        update_item_cache(
-            background_tasks,
-            redis_client,
-            group_cache_key,
-            expense_data,
-        )
+        invalidate_cache(background_tasks, redis_client, global_cache_key)
+        invalidate_cache(background_tasks, redis_client, group_cache_key)
+        invalidate_cache(background_tasks, redis_client, balances_cache_key)
+        invalidate_cache(background_tasks, redis_client, debtors_cache_key)
 
         log_cache_operation("update", global_cache_key)
         log_cache_operation("update", group_cache_key)
+        log_cache_operation("update", balances_cache_key)
+        log_cache_operation("update", debtors_cache_key)
+
+        remove_item_from_cache(
+            background_tasks, redis_client, group_cache_key, expense_data["id"]
+        )
+
+        log_cache_operation("remove", group_cache_key)
 
         total_duration = time.time() - start_time
         logger.info(
@@ -237,9 +247,15 @@ async def delete_expense(
                 background_tasks, redis_client, group_cache_key, expense_id
             )
             balances_cache_key = group_balances_cache_key(group_id)
+            debtors_cache_key = group_debtors_cache_key(group_id)
+
             invalidate_cache(background_tasks, redis_client, balances_cache_key)
+            invalidate_cache(background_tasks, redis_client, group_cache_key)
+            invalidate_cache(background_tasks, redis_client, debtors_cache_key)
+
             log_cache_operation("delete", group_cache_key)
             log_cache_operation("invalidate", balances_cache_key)
+            log_cache_operation("invalidate", debtors_cache_key)
 
         total_duration = time.time() - start_time
         logger.info(

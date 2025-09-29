@@ -1,16 +1,24 @@
 import { Person } from "../interfaces/Person";
 import { DebtorsExpense } from "../interfaces/DebtorsExpense";
 import { Expense } from "../interfaces/Expense";
+import { calculateDebtorAmount } from "../utils/calculateDebtorAmount";
 import {
+  Badge,
+  Box,
   Card,
+  Divider,
+  Flex,
   Heading,
+  HStack,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
   ModalOverlay,
+  Spacer,
   Text,
+  VStack,
 } from "@chakra-ui/react";
 
 interface PersonInfoProps {
@@ -34,8 +42,11 @@ const PersonInfo = ({
     // find all debtors for this expense
     const relatedDebtors = expenses.filter((d) => d.expense_id === expense.id);
 
-    // sum their amounts
-    const totalAmount = relatedDebtors.reduce((sum, d) => sum + d.amount, 0);
+    // sum their calculated amounts
+    const totalAmount = relatedDebtors.reduce(
+      (sum, d) => sum + calculateDebtorAmount(d, expense.amount, relatedDebtors), 
+      0
+    );
 
     // find payer
     const payer = groupPersons.find((p) => p.id === expense.payer_id);
@@ -47,7 +58,7 @@ const PersonInfo = ({
         person: payer ? payer.name : "Unknown",
       };
     }
-    if (!activePerson) return;
+    if (!activePerson) return acc;
     if (expense.payer_id == activePerson.id) {
       acc[expense.payer_id].amount -= totalAmount;
     } else {
@@ -56,6 +67,22 @@ const PersonInfo = ({
 
     return acc;
   }, {} as Record<string, { amount: number; person: string }>);
+
+  // Convert Object.entries to a more structured format
+  const balanceEntries = Object.entries(result).map(
+    ([payerId, { amount, person: personName }]) => ({
+      payerId,
+      amount,
+      personName,
+      isActivePerson: payerId === activePerson.id,
+      owesOrOwed: amount > 0 ? "owes" : "owed",
+      absoluteAmount: Math.abs(amount),
+    })
+  );
+
+  // Separate debts and credits for better organization
+  const debts = balanceEntries.filter((entry) => entry.amount > 0);
+  const credits = balanceEntries.filter((entry) => entry.amount < 0);
 
   return (
     <Modal isOpen={isOpen} onClose={handleClosePopup}>
@@ -67,58 +94,161 @@ const PersonInfo = ({
         } absolute top-0 left-0 bg-white min-w-1/2 min-h-full flex-col py-3`}
       >
         <ModalHeader>
-          <Text fontSize="2xl" fontWeight="bold">
-            Expenses
-          </Text>
+          <HStack>
+            <Text fontSize="2xl" fontWeight="bold">
+              {activePerson.name}'s Financial Summary
+            </Text>
+            <Spacer />
+            <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
+              {expenses.length} expense{expenses.length !== 1 ? "s" : ""}
+            </Badge>
+          </HStack>
         </ModalHeader>
         <ModalBody>
-          <div className="flex flex-col">
-            {expenses.map((expense) => {
-              const currentExpense = payedExpenses.find(
-                (payedExpense) => payedExpense.id === expense.expense_id
-              );
+          <VStack spacing={6} align="stretch">
+            {/* Individual Expenses Section */}
+            <Box>
+              <Heading size="md" mb={3} color="gray.700">
+                Individual Expenses
+              </Heading>
+              <VStack spacing={2} align="stretch">
+                {expenses.map((expense) => {
+                  const currentExpense = payedExpenses.find(
+                    (payedExpense) => payedExpense.id === expense.expense_id
+                  );
 
-              const payerId = currentExpense?.payer_id;
+                  const payerId = currentExpense?.payer_id;
+                  const isPaidByActivePerson = activePerson.id === payerId;
+                  
+                  // Calculate the actual amount for this debtor
+                  const expenseDebtors = expenses.filter(
+                    (d) => d.expense_id === expense.expense_id
+                  );
+                  const calculatedAmount = calculateDebtorAmount(
+                    expense, 
+                    currentExpense?.amount || 0, 
+                    expenseDebtors
+                  );
 
-              return (
-                <Card
-                  key={expense.id}
-                  className="border-b-cyan-600 p-5 border-2 m-1"
-                  bgColor="#eee"
-                >
-                  <Heading fontSize="xl" color="blackAlpha.700">
-                    {currentExpense?.name}
-                  </Heading>
-                  <Text fontSize="xl" fontWeight="bold" className="text-right">
-                    {expense.amount.toFixed(2)} €
+                  return (
+                    <Card
+                      key={expense.id}
+                      p={4}
+                      borderWidth={2}
+                      borderColor="cyan.200"
+                      bg="gray.50"
+                    >
+                      <Flex align="center">
+                        <Box flex={1}>
+                          <Heading size="sm" color="gray.700">
+                            {currentExpense?.name}
+                          </Heading>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            {isPaidByActivePerson
+                              ? "✅ Paid by this person"
+                              : `💰 Paid by ${
+                                  groupPersons.find(
+                                    (groupPerson) => payerId === groupPerson.id
+                                  )?.name ?? "Unknown"
+                                }`}
+                          </Text>
+                        </Box>
+                        <Text fontSize="lg" fontWeight="bold" color="gray.800">
+                          €{calculatedAmount.toFixed(2)}
+                        </Text>
+                      </Flex>
+                    </Card>
+                  );
+                })}
+              </VStack>
+            </Box>
+
+            <Divider />
+
+            {/* Balance Summary Section */}
+            <Box>
+              <Heading size="md" mb={3} color="gray.700">
+                Balance Summary
+              </Heading>
+
+              {/* Money Owed (Debts) */}
+              {debts.length > 0 && (
+                <Box mb={4}>
+                  <Text fontWeight="semibold" color="red.600" mb={2}>
+                    💸 Money You Owe:
                   </Text>
-                  <Text fontSize="xs" className="text-right">
-                    {activePerson!.id === payerId
-                      ? "Already payed by this person!"
-                      : `To ${
-                          groupPersons.find(
-                            (groupPerson) => payerId === groupPerson.id
-                          )?.name ?? ""
-                        }`}
+                  <VStack spacing={2} align="stretch">
+                    {debts.map((entry) => (
+                      <Card
+                        key={entry.payerId}
+                        p={3}
+                        bg="red.50"
+                        borderColor="red.200"
+                        borderWidth={1}
+                      >
+                        <Flex justify="space-between" align="center">
+                          <Text color="gray.700">
+                            To:{" "}
+                            <Text as="span" fontWeight="semibold">
+                              {entry.personName}
+                            </Text>
+                          </Text>
+                          <Text fontWeight="bold" color="red.600">
+                            €{entry.absoluteAmount.toFixed(2)}
+                          </Text>
+                        </Flex>
+                      </Card>
+                    ))}
+                  </VStack>
+                </Box>
+              )}
+
+              {/* Money Owed To You (Credits) */}
+              {credits.length > 0 && (
+                <Box>
+                  <Text fontWeight="semibold" color="green.600" mb={2}>
+                    💰 Money Owed To You:
+                  </Text>
+                  <VStack spacing={2} align="stretch">
+                    {credits.map((entry) => (
+                      <Card
+                        key={entry.payerId}
+                        p={3}
+                        bg="green.50"
+                        borderColor="green.200"
+                        borderWidth={1}
+                      >
+                        <Flex justify="space-between" align="center">
+                          <Text color="gray.700">
+                            From:{" "}
+                            <Text as="span" fontWeight="semibold">
+                              {entry.personName}
+                            </Text>
+                          </Text>
+                          <Text fontWeight="bold" color="green.600">
+                            €{entry.absoluteAmount.toFixed(2)}
+                          </Text>
+                        </Flex>
+                      </Card>
+                    ))}
+                  </VStack>
+                </Box>
+              )}
+
+              {/* No Balance */}
+              {debts.length === 0 && credits.length === 0 && (
+                <Card p={4} bg="blue.50" borderColor="blue.200" borderWidth={1}>
+                  <Text
+                    textAlign="center"
+                    color="blue.700"
+                    fontWeight="semibold"
+                  >
+                    🎉 All settled up! No outstanding balances.
                   </Text>
                 </Card>
-              );
-            })}
-          </div>
-          <div className="flex flex-col">
-            {Object.entries(result).map(
-              ([payerId, { amount, person: personName }]) => (
-                <div key={payerId} className="border-b-cyan-600 p-5 border-2">
-                  {payerId == activePerson!.id ? (
-                    "Debts"
-                  ) : (
-                    <p>To: {personName}</p>
-                  )}
-                  <p>Amount: {amount}</p>
-                </div>
-              )
-            )}
-          </div>
+              )}
+            </Box>
+          </VStack>
         </ModalBody>
         <ModalFooter>
           <button onClick={handleClosePopup}>Close</button>

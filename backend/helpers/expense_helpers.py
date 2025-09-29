@@ -26,14 +26,65 @@ async def create_expense_record(supabase, expense: ExpenseCreate):
 
 
 async def create_debtors_records(
-    supabase, expense_id: str, expense_amount: float, debtors: list
+    supabase, expense_id: str, expense_amount: float, debtors: list, split_type: str
 ):
-    """Create debtor records for expense"""
-    share_amount = expense_amount / len(debtors)
-    debtors_data = [
-        {"expense_id": expense_id, "person_id": debtor_id, "amount": share_amount}
-        for debtor_id in debtors
-    ]
+    """Create debtor records for an expense"""
+    """Store raw values (portions/percentages) not calculated dollar amounts"""
+
+    # Check if debtors are strings (equal split) or dicts/objects (percentage/portion)
+    is_simple_list = isinstance(debtors[0], str)
+
+    if split_type == "equal":
+        # For equal split, store equal portion for each debtor (e.g., 1 portion each)
+        debtors_data = [
+            {
+                "expense_id": expense_id,
+                "person_id": (
+                    debtor
+                    if is_simple_list
+                    else (debtor.get("id") if isinstance(debtor, dict) else debtor.id)
+                ),
+                "amount": 1,  # Store raw portion value
+                "split_type": "equal",
+            }
+            for debtor in debtors
+        ]
+
+    elif split_type == "portion":
+        # Store the raw portion values (e.g., 30, 15, 15)
+        debtors_data = [
+            {
+                "expense_id": expense_id,
+                "person_id": (
+                    debtor.get("id") if isinstance(debtor, dict) else debtor.id
+                ),
+                "amount": (
+                    debtor.get("value", 1) if isinstance(debtor, dict) else debtor.value
+                ),
+                "split_type": "portion",
+            }
+            for debtor in debtors
+        ]
+
+    elif split_type == "percentage":
+        # Store the raw percentage values (e.g., 50, 30, 20)
+        debtors_data = [
+            {
+                "expense_id": expense_id,
+                "person_id": (
+                    debtor.get("id") if isinstance(debtor, dict) else debtor.id
+                ),
+                "amount": (
+                    debtor.get("value", 0) if isinstance(debtor, dict) else debtor.value
+                ),
+                "split_type": "percentage",
+            }
+            for debtor in debtors
+        ]
+
+    else:
+        raise ValueError("Invalid split_type")
+
     response = supabase.table("expenses_debtors").insert(debtors_data).execute()
     return response.data
 

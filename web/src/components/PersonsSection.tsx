@@ -31,9 +31,12 @@ const PersonsList = ({
 }: PersonsListProps) => {
   return (
     <Box>
-      <Heading size="lg" mb={4}>
-        People ({persons.length})
-      </Heading>
+      <HStack mb={4}>
+        <Heading size="md">People</Heading>
+        <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
+          {persons.length} person{persons.length !== 1 ? "s" : ""}
+        </Badge>
+      </HStack>
       {persons.length === 0 ? (
         <Text color="gray.500" textAlign="center" py={8}>
           No people in this group yet. Add someone above to get started!
@@ -45,7 +48,13 @@ const PersonsList = ({
               key={person.id}
               p={4}
               cursor="pointer"
+              _hover={{
+                shadow: "md",
+                transform: "translateY(-2px)",
+                transition: "all 0.2s",
+              }}
               onClick={() => onPersonClick(person)}
+              position="relative"
             >
               <HStack justify="space-between" align="start">
                 <VStack spacing={2} flex={1}>
@@ -53,18 +62,18 @@ const PersonsList = ({
                   {balances && balances[person.id] && (
                     <VStack spacing={1}>
                       <Text fontSize="sm" color="gray.600">
-                        Paid: ${balances[person.id].paid.toFixed(2)}
+                        Paid: €{balances[person.id].paid.toFixed(2)}
                       </Text>
                       <Text fontSize="sm" color="gray.600">
-                        Owes: ${balances[person.id].owes.toFixed(2)}
+                        Owes: €{balances[person.id].owes.toFixed(2)}
                       </Text>
                       <Badge
                         colorScheme={
                           balances[person.id].balance >= 0 ? "green" : "red"
                         }
                       >
-                        {balances[person.id].balance >= 0 ? "+" : ""}$
-                        {balances[person.id].balance.toFixed(2)}
+                        {balances[person.id].balance >= 0 ? "+" : "-"}€
+                        {Math.abs(balances[person.id].balance).toFixed(2)}
                       </Badge>
                     </VStack>
                   )}
@@ -89,6 +98,9 @@ const PersonsList = ({
                     e.stopPropagation();
                     onDeletePerson(person.id);
                   }}
+                  position="absolute"
+                  top={2}
+                  right={2}
                 />
               </HStack>
             </Card>

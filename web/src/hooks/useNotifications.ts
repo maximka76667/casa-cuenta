@@ -31,7 +31,7 @@ export const useNotifications = () => {
         status: "success",
         duration: 3000,
         isClosable: true,
-        position: "bottom-right",
+        position: "bottom",
       });
     },
     [toast]

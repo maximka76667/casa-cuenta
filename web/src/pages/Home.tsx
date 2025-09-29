@@ -17,9 +17,10 @@ import {
   Badge,
 } from "@chakra-ui/react";
 import axios from "axios";
-import { getAllGroups } from "../api/api";
+import { createGroup, getAllGroups } from "../api/api";
 import { Group } from "../interfaces/Group";
 import { useNotifications } from "../hooks/useNotifications";
+import { formatDateNumericMonth } from "../utils/formatDate";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -59,7 +60,7 @@ const Home = () => {
     };
   }, [toast, showError]);
 
-  const createGroup = async () => {
+  const addGroup = async () => {
     if (!groupName.trim()) {
       showError({
         title: "Error",
@@ -71,14 +72,11 @@ const Home = () => {
 
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/groups`, {
-        name: groupName.trim(),
-      });
+      const response = await createGroup(groupName.trim());
 
-      const group = response.data.group[0];
       showSuccess({
         title: "Success",
-        description: `Group "${group.name}" created successfully!`,
+        description: `Group "${response.group.name}" created successfully!`,
       });
 
       // Refresh the groups list
@@ -94,7 +92,7 @@ const Home = () => {
       setGroupName("");
 
       // Navigate to the group page
-      navigate(`/groups/${group.id}`);
+      navigate(`/groups/${response.group.id}`);
     } catch (error) {
       console.error("Error creating group:", error);
       showError({
@@ -108,15 +106,6 @@ const Home = () => {
 
   const joinGroup = (groupId: string) => {
     navigate(`/groups/${groupId}`);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
   };
 
   return (
@@ -140,13 +129,13 @@ const Home = () => {
                 placeholder="Enter group name (e.g., 'Weekend Trip', 'Roommates')"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && createGroup()}
+                onKeyDown={(e) => e.key === "Enter" && addGroup()}
               />
               <Button
                 colorScheme="blue"
                 size="lg"
                 w="100%"
-                onClick={createGroup}
+                onClick={addGroup}
                 isLoading={isLoading}
                 loadingText="Creating..."
               >
@@ -197,7 +186,7 @@ const Home = () => {
                             {group.name}
                           </Text>
                           <Text fontSize="xs" color="gray.500">
-                            Created {formatDate(group.created_at)}
+                            Created {formatDateNumericMonth(group.created_at)}
                           </Text>
                         </VStack>
                       </CardBody>

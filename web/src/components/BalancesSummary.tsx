@@ -7,6 +7,7 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
+  HStack,
 } from "@chakra-ui/react";
 import { Balances } from "../interfaces/Balances";
 
@@ -21,21 +22,23 @@ const BalancesSummary = ({ balances }: BalancesSummaryProps) => {
 
   return (
     <Box>
-      <Heading size="lg" mb={4}>
-        Balance Summary
-      </Heading>
+      <HStack mb={4}>
+        <Heading size="md">Balance Summary</Heading>
+      </HStack>
+
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-        {Object.entries(balances).map(([personId, balance]) => (
+        {Object.entries(balances).map(([personId, balanceSummary]) => (
           <Card key={personId} p={4}>
             <Stat>
-              <StatLabel>{balance.name}</StatLabel>
+              <StatLabel>{balanceSummary.name}</StatLabel>
               <StatNumber
-                color={balance.balance >= 0 ? "green.500" : "red.500"}
+                color={balanceSummary.balance >= 0 ? "green.500" : "red.500"}
               >
-                {balance.balance >= 0 ? "+" : ""}${balance.balance.toFixed(2)}
+                {balanceSummary.balance >= 0 ? "+" : "-"}€
+                {Math.abs(balanceSummary.balance).toFixed(2)}
               </StatNumber>
               <StatHelpText>
-                {balance.balance >= 0 ? "Should receive" : "Should pay"}
+                {balanceSummary.balance >= 0 ? "Should receive" : "Should pay"}
               </StatHelpText>
             </Stat>
           </Card>

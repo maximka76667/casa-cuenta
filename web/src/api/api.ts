@@ -49,12 +49,14 @@ export const addPerson = async (name: string, groupId: string) => {
 };
 
 export const submitExpense = async (data: ExpenseCreate) => {
+  console.log(data);
   const res = await axios.post(`${API_BASE_URL}/expenses`, {
     name: data.name,
     debtors: data.debtors,
     group_id: data.groupId,
     amount: data.amount,
     payer_id: data.payerId,
+    split_type: data.splitType,
   });
 
   return res.data;
@@ -102,6 +104,25 @@ export const getGroupBalances = async (
   const res = await axios.get(`${API_BASE_URL}/groups/${groupId}/balances`, {
     signal: controller?.signal,
   });
+
+  return res.data;
+};
+
+export const createGroup = async (
+  name: string,
+  controller?: AbortController
+) => {
+  const res = await axios.post(
+    `${API_BASE_URL}/groups`,
+    {
+      name: name.trim(),
+    },
+    {
+      signal: controller?.signal,
+    }
+  );
+
+  console.log(res.data);
 
   return res.data;
 };

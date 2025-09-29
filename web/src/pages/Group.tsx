@@ -27,6 +27,8 @@ import BalancesSummary from "../components/BalancesSummary";
 import GroupHeader from "../components/GroupHeader";
 import GroupNotFound from "../components/GroupNotFound";
 import { Balances } from "../interfaces/Balances";
+import ChatbotInterface from "../components/ChatBotInterface";
+import ChatbotButton from "../components/ChatBotButton";
 
 const Group = () => {
   const { groupId } = useParams();
@@ -46,7 +48,18 @@ const Group = () => {
   const [isPersonInfoOpen, setIsPersonInfoOpen] = useState(false);
   const [activePerson, setActivePerson] = useState<Person | null>(null);
 
+  // Chatbot popup state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
   const { showError, showSuccess } = useNotifications();
+
+  const handleOpenChat = () => {
+    setIsChatOpen(true);
+  };
+
+  const handleCloseChat = () => {
+    setIsChatOpen(false);
+  };
 
   const handleAddExpense = (clickedPersonId: string) => {
     setIsPopupOpen(true);
@@ -56,12 +69,12 @@ const Group = () => {
   const handlePersonsChange = async (newPersonName: string) => {
     try {
       const { person: newPerson } = await addPerson(newPersonName, groupId!);
-      setPersons([...persons, newPerson[0]]);
+      // setPersons([...persons, newPerson[0]]);
       showSuccess({
         title: "Success",
         description: `${newPerson.name} added to the group!`,
       });
-      fetchData();
+      refreshData();
     } catch (error) {
       console.error("Error adding person:", error);
       showError({
@@ -81,6 +94,7 @@ const Group = () => {
         amount: data.amount,
         payerId: data.payerId,
         debtors: data.debtors,
+        splitType: data.splitType,
       };
 
       await submitExpense(newExpense);
@@ -91,7 +105,7 @@ const Group = () => {
       });
 
       // Refresh data
-      fetchData();
+      refreshData();
       setIsPopupOpen(false);
     } catch (error) {
       console.error("Error adding expense:", error);
@@ -127,7 +141,7 @@ const Group = () => {
       });
 
       // Refresh data to update balances
-      fetchData();
+      refreshData();
     } catch (error) {
       console.error("Error deleting expense:", error);
       showError({
@@ -147,7 +161,7 @@ const Group = () => {
       });
 
       // Refresh data to update persons list and balances
-      fetchData();
+      refreshData();
     } catch (error) {
       console.error("Error deleting person:", error);
       showError({
@@ -164,25 +178,7 @@ const Group = () => {
       setIsLoading(true);
 
       try {
-        const [
-          groupData,
-          personsData,
-          expensesData,
-          debtorsData,
-          balancesData,
-        ] = await Promise.all([
-          getGroup(groupId, controller),
-          getGroupPersons(groupId, controller),
-          getExpenses(groupId, controller),
-          getDebtors(groupId, controller),
-          getGroupBalances(groupId, controller),
-        ]);
-
-        setGroup(groupData);
-        setPersons(personsData);
-        setExpenses(expensesData);
-        setDebtorsExpenses(debtorsData);
-        setBalances(balancesData.balances);
+        await refreshData();
       } catch (err: unknown) {
         if (err instanceof Error) {
           if (err.name === "CanceledError") return; // ignore cancellation
@@ -196,11 +192,36 @@ const Group = () => {
           console.error("Unexpected error", err);
         }
       } finally {
-        setIsLoading(false);
+        if (!controller?.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     },
     [groupId, showError]
   );
+
+  const refreshData = useCallback(async () => {
+    if (!groupId) return;
+
+    try {
+      const [groupData, personsData, expensesData, debtorsData, balancesData] =
+        await Promise.all([
+          getGroup(groupId),
+          getGroupPersons(groupId),
+          getExpenses(groupId),
+          getDebtors(groupId),
+          getGroupBalances(groupId),
+        ]);
+
+      setGroup(groupData);
+      setPersons(personsData);
+      setExpenses(expensesData);
+      setDebtorsExpenses(debtorsData);
+      setBalances(balancesData.balances);
+    } catch (err: unknown) {
+      console.error("Failed to refresh data:", err);
+    }
+  }, [groupId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -252,6 +273,7 @@ const Group = () => {
         <ExpensesList
           expenses={expenses}
           persons={persons}
+          debtorsExpenses={debtorsExpenses}
           onDeleteExpense={handleDeleteExpense}
         />
 
@@ -265,7 +287,7 @@ const Group = () => {
         {/* Back to Home */}
         <Box textAlign="center">
           <Link to="/">
-            <Button variant="outline">Create Another Group</Button>
+            <Button variant="outline">Go to Home</Button>
           </Link>
         </Box>
       </VStack>
@@ -291,6 +313,16 @@ const Group = () => {
           groupPersons={persons}
         />
       )}
+
+      <ChatbotInterface
+        groupId={groupId}
+        isOpen={isChatOpen}
+        onClose={handleCloseChat}
+        onExpenseAdded={refreshData}
+      />
+
+      {/* Chatbot Button */}
+      {!isChatOpen && <ChatbotButton onClick={handleOpenChat} />}
     </Container>
   );
 };

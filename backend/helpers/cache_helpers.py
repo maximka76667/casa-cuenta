@@ -1,25 +1,11 @@
-import json
 from typing import List, Dict, Optional
-from datetime import datetime
 
-
-def serialize_dates(v):
-    return v.isoformat() if isinstance(v, datetime) else v
-
-
-def datetime_parser(dct):
-    for k, v in dct.items():
-        if isinstance(v, str) and v.endswith("+00:00"):
-            try:
-                dct[k] = datetime.fromisoformat(v)
-            except:
-                pass
-    return dct
+from utils import dump_json, load_json
 
 
 async def cache_single_object_async(redis_client, cache_key: str, data: Dict):
     """Cache a single object directly (not as part of a hash)"""
-    data_json = json.dumps(data, default=serialize_dates)
+    data_json = dump_json(data)
     await redis_client.set(cache_key, data_json)
 
 
@@ -29,7 +15,7 @@ async def get_cached_single_object_async(
     """Get a single cached object"""
     data = await redis_client.get(cache_key)
     if data:
-        return json.loads(data, object_hook=datetime_parser)
+        return load_json(data)
     return None
 
 
@@ -65,7 +51,7 @@ async def get_cached_items(redis_client, cache_key: str) -> Optional[List[Dict]]
     """Generic function to get items from cache"""
     data = await get_cached_items_async(redis_client, cache_key)
     if data:
-        return [json.loads(v, object_hook=datetime_parser) for v in data.values()]
+        return [load_json(v) for v in data.values()]
     return None
 
 
@@ -80,7 +66,7 @@ def cache_items(
 
     for item in items:
 
-        item_json = json.dumps(item, default=serialize_dates)
+        item_json = dump_json(item)
 
         background_tasks.add_task(
             cache_item_async, redis_client, cache_key, item[id_field], item_json
@@ -96,7 +82,7 @@ def update_item_cache(
 ):
     """Generic function to update single item in cache"""
     item_id = item_data[id_field]
-    item_json = json.dumps(item_data, default=serialize_dates)
+    item_json = dump_json(item_data)
     background_tasks.add_task(
         cache_item_async, redis_client, cache_key, item_id, item_json
     )

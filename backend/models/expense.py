@@ -1,12 +1,5 @@
 from pydantic import BaseModel
-from typing import List
-
-
-# class ExpenseIn(BaseModel):
-#     group_id: str
-#     name: str
-#     amount: float
-#     payer_id: str
+from typing import List, Union
 
 
 class ExpenseOut(BaseModel):
@@ -24,12 +17,18 @@ class ExpenseUpdate(BaseModel):
     payer_id: str | None = None
 
 
+class DebtorWithValue(BaseModel):
+    id: str
+    value: float
+
+
 class ExpenseCreate(BaseModel):
     name: str
     group_id: str
     payer_id: str
     amount: float
-    debtors: List[str]
+    debtors: Union[List[str], List[DebtorWithValue]]
+    split_type: str
 
 
 class ExpenseListResponse(BaseModel):

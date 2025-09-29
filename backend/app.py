@@ -25,12 +25,7 @@ from middlewares.rate_limiter import (
     limiter,
     rate_limit_exceeded_handler,
 )
-from routers import expenses
-from routers import groups
-from routers import debtors
-from routers import persons
-from routers import group_users
-from routers import users
+from routers import groups, chatbot, expenses, debtors, persons, group_users, users
 
 origins = [
     "http://localhost:5173",
@@ -162,3 +157,4 @@ app.include_router(debtors.router)
 app.include_router(persons.router)
 app.include_router(group_users.router)
 app.include_router(users.router)
+app.include_router(chatbot.router)
